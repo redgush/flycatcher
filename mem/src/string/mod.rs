@@ -37,9 +37,9 @@ pub trait FlycatcherString {
 }
 
 /// A general purpose string that implements the `FlycatcherString` trait.  It uses the global
-/// allocater to allocate memory for the string.
+/// allocator to allocate memory for the string.
 pub struct AllocString {
 
-    
+
 
 }
