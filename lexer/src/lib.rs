@@ -114,7 +114,7 @@ impl<'a> Lexer<'a> {
             // token.
             return Token::EndOfFile;
         }
-        
+        return Token::EndOfFile;
     }
 
 }
