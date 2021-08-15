@@ -1,7 +1,5 @@
 //! An efficient hand-written lexer that tokenizes any valid or invalid Flycatcher source.
 
-#![no_std]
-
 /// A list of tokens that the lexer may output given an input string.
 pub enum Token {
     

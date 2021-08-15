@@ -1,5 +1,4 @@
 [workspace]
 members = [
-    "lexer",
-    "mem"
+    "lexer"
 ]
