@@ -127,6 +127,10 @@ impl FlycatcherString for AllocString {
         }
     }
 
+    fn len(&self) -> usize {
+        self.len
+    }
+
 }
 
 /// Memory management for AllocString.
