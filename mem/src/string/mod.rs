@@ -40,6 +40,13 @@ pub trait FlycatcherString {
     /// - `c`: The character to write at the provided `idx`.
     fn put(&mut self, idx: usize, c: char);
 
+    /// "Pushes" a character to the end of the FlycatcherString, dynamically reallocating the
+    /// memory used by the string to fit the new character in.
+    /// 
+    /// # Arguments
+    /// - `c`: The character to push to the end of the `FlycatcherString`.
+    fn push(&mut self, c: char);
+
     /// Returns the count of characters in the FlycatcherString.  The size of the allocated
     /// memory of the FlycatcherString is equivalent to
     /// `FlycatcherString::len() * size_of::<char>()`.
