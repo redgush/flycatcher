@@ -40,6 +40,14 @@ pub trait FlycatcherString {
     /// - `c`: The character to write at the provided `idx`.
     fn put(&mut self, idx: usize, c: char);
 
+    /// Returns the count of characters in the FlycatcherString.  The size of the allocated
+    /// memory of the FlycatcherString is equivalent to
+    /// `FlycatcherString::len() * size_of::<char>()`.
+    /// 
+    /// # Returns
+    /// - The count of characters in the FlycatcherString, as a `usize`.
+    fn len(&self) -> usize;
+
 }
 
 /// A general purpose string that implements the `FlycatcherString` trait.  It uses the global
