@@ -37,7 +37,18 @@ pub mod test {
         assert_eq!(str.get(1), Some('e'));
         assert_eq!(str.get(2), Some('s'));
         assert_eq!(str.get(3), Some('t'));
+    }
 
+    #[test]
+    fn string_push() {
+        let mut str = AllocString::from_str("Tes");
+
+        str.push('t');
+
+        assert_eq!(str.get(0), Some('T'));
+        assert_eq!(str.get(1), Some('e'));
+        assert_eq!(str.get(2), Some('s'));
+        assert_eq!(str.get(3), Some('t'));
     }
 
 }

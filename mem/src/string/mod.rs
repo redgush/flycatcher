@@ -137,7 +137,7 @@ impl FlycatcherString for AllocString {
     fn push(&mut self, c: char) {
         unsafe {
             let layout = Layout::from_size_align_unchecked(self.len + 1, size_of::<char>() * (self.len + 1));
-            realloc(self.ptr as *mut u8, layout, self.len + 1);
+            realloc(self.ptr as *mut u8, layout, layout.size());
 
             *self.ptr.add(self.len) = c;
         }
