@@ -120,3 +120,15 @@ impl FlycatcherString for AllocString {
     }
 
 }
+
+/// Memory management for AllocString.
+impl Drop for AllocString {
+
+    fn drop(&mut self) {
+        unsafe {
+            let layout = Layout::from_size_align_unchecked(self.len, size_of::<char>() * self.len);
+            dealloc(self.ptr as *mut u8, layout);
+        }
+    }
+
+}
