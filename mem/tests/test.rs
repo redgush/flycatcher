@@ -26,4 +26,18 @@ pub mod test {
         assert_eq!(str.get(12), Some('!'));
     }
 
+    #[test]
+    fn string_set() {
+        // Initialize a FlycatcherString.
+        let mut str = AllocString::from_str("Test");
+
+        str.put(0, 't');
+
+        assert_eq!(str.get(0), Some('t'));
+        assert_eq!(str.get(1), Some('e'));
+        assert_eq!(str.get(2), Some('s'));
+        assert_eq!(str.get(3), Some('t'));
+
+    }
+
 }
