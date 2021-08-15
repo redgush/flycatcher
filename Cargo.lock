@@ -3,7 +3,3 @@
 [[package]]
 name = "flycatcher-lexer"
 version = "0.1.0"
-
-[[package]]
-name = "flycatcher-mem"
-version = "0.1.0"
