@@ -102,6 +102,23 @@ pub enum Token {
     #[token("%")]
     Percent,
 
+    /// The equals operator (`=`).
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("my_iden = 2");
+    /// assert_eq!(lexer.next(), Some(Token::Identifier));
+    /// assert_eq!(lexer.slice(), "my_iden");
+    /// assert_eq!(lexer.next(), Some(Token::Equals));
+    /// assert_eq!(lexer.slice(), "=");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "2");
+    /// ```
+    #[token("=")]
+    Equals,
+
     /// A number literal that supports integers and floating point numbers, with an optional
     /// mantissa (exponent).
     /// 
@@ -148,7 +165,7 @@ pub enum Token {
     /// assert_eq!(lexer.next(), Some(Token::Identifier));
     /// assert_eq!(lexer.slice(), "Hello");
     /// ```
-    #[regex(r"[a-zA-Z_$][a-zA-Z0-9]*")]
+    #[regex(r"[a-zA-Z_$][a-zA-Z_0-9]*")]
     Identifier,
 
     /// This token matches any whitespace character, including regular whitespaces, tabs and
