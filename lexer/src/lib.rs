@@ -17,6 +17,91 @@ pub use logos::{Lexer, Logos};
 #[derive(Clone, Debug, Logos, PartialEq)]
 pub enum Token {
 
+    /// The plus (`+`) operator.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("21 + 21");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// assert_eq!(lexer.next(), Some(Token::Plus));
+    /// assert_eq!(lexer.slice(), "+");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// ```
+    #[token("+")]
+    Plus,
+
+    /// The dash/hyphen/minus (`-`) operator.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("21 - 21");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// assert_eq!(lexer.next(), Some(Token::Dash));
+    /// assert_eq!(lexer.slice(), "-");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// ```
+    #[token("-")]
+    Dash,
+
+    /// The star/asterisk/multiply (`*`) operator.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("21 * 21");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// assert_eq!(lexer.next(), Some(Token::Star));
+    /// assert_eq!(lexer.slice(), "*");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// ```
+    #[token("*")]
+    Star,
+
+    /// The forward slash/divide (`/`) operator.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("42 / 2");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "42");
+    /// assert_eq!(lexer.next(), Some(Token::Slash));
+    /// assert_eq!(lexer.slice(), "/");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "2");
+    /// ```
+    #[token("/")]
+    Slash,
+
+    /// The percent/modulus (`%`) operator.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("21 % 2");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// assert_eq!(lexer.next(), Some(Token::Percent));
+    /// assert_eq!(lexer.slice(), "%");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "2");
+    /// ```
+    #[token("%")]
+    Percent,
+
     /// A number literal that supports integers and floating point numbers, with an optional
     /// mantissa (exponent).
     /// 
