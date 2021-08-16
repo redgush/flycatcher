@@ -17,6 +17,24 @@ pub use logos::{Lexer, Logos};
 #[derive(Clone, Debug, Logos, PartialEq)]
 pub enum Token {
 
+    /// A number literal that supports integers and floating point numbers, with an optional
+    /// mantissa (exponent).
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("42 4.2 4.2e1");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "42");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "4.2");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "4.2e1");
+    /// ```
+    #[regex("[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?")]
+    Number,
+    
     /// A Flycatcher style string literal, which may start and end with either `'` or `"`.  It
     /// allows escaping characters, but those are not parsed here.
     /// 
