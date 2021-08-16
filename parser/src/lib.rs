@@ -24,3 +24,24 @@ pub struct Parser<'a> {
     lexer: Lexer<'a, Token>,
 
 }
+
+impl<'a> Parser<'a> {
+
+    /// Allocates a new parser object.  This does not start the parsing process, it only
+    /// initializes a lexer and parser and returns the parser.
+    /// 
+    /// # Arguments
+    /// - `filename`: The absolute file path to the file being parsed, if any.  If you don't
+    /// have an actual file to put here, put `@anonymous`.
+    /// - `source`: The string that will be tokenized and parsed by the parser that is allocated
+    /// by this function.
+    pub fn new(filename: &'a str, source: &'a str) -> Self {
+        Self {
+            filename,
+            source,
+            diagnostics: vec![],
+            lexer: Token::lexer(source)
+        }
+    }
+
+}
