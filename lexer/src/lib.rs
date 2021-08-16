@@ -165,7 +165,7 @@ pub enum Token {
     /// assert_eq!(lexer.next(), Some(Token::Identifier));
     /// assert_eq!(lexer.slice(), "Hello");
     /// ```
-    #[regex(r"[a-zA-Z_$][a-zA-Z_0-9]*")]
+    #[regex(r"[a-zA-Z_$][a-zA-Z_$0-9]*")]
     Identifier,
 
     /// This token matches any whitespace character, including regular whitespaces, tabs and
