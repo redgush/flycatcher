@@ -1,5 +1,7 @@
 //! A hand-written parser that emits an AST tree.
 
+pub mod ast;
+
 use codespan_reporting::diagnostic::Diagnostic;
 use flycatcher_lexer::{Lexer, Logos, Token};
 
