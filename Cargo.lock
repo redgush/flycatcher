@@ -19,6 +19,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "flycatcher-diagnostic"
+version = "0.1.0"
+dependencies = [
+ "codespan-reporting",
+]
+
+[[package]]
 name = "flycatcher-lexer"
 version = "0.1.0"
 dependencies = [
