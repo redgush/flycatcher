@@ -4,7 +4,7 @@ use crate::ast::Ast;
 use std::ops::Range;
 
 /// Describes where an AST item was found in the source input string.
-#[derive(Debug)]
+//#[derive(Debug)]
 pub struct AstMeta {
 
     // The range of characters where the AST item in this metadata structure was found.
@@ -38,6 +38,14 @@ impl AstMeta {
     /// Converts this AST metadata object into a boxed AST metadata object.
     pub fn as_box(self) -> Box<Self> {
         Box::new(self)
+    }
+
+}
+
+impl std::fmt::Debug for AstMeta {
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.item.fmt(f)
     }
 
 }
