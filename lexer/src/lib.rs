@@ -212,6 +212,27 @@ pub enum Token {
     #[token("=")]
     Equals,
 
+    /// A comma token: `,`
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("[1, 2]");
+    /// assert_eq!(lexer.next(), Some(Token::OBrack));
+    /// assert_eq!(lexer.slice(), "[");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "1");
+    /// assert_eq!(lexer.next(), Some(Token::Comma));
+    /// assert_eq!(lexer.slice(), ",");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "2");
+    /// assert_eq!(lexer.next(), Some(Token::CBrack));
+    /// assert_eq!(lexer.slice(), "]");
+    /// ```
+    #[token(",")]
+    Comma,
+
     /// A number literal that supports integers and floating point numbers, with an optional
     /// mantissa (exponent).
     /// 

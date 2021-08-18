@@ -4,7 +4,7 @@ use crate::ast::Ast;
 use std::ops::Range;
 
 /// Describes where an AST item was found in the source input string.
-//#[derive(Debug)]
+#[derive(Clone)]
 pub struct AstMeta {
 
     // The range of characters where the AST item in this metadata structure was found.

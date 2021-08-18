@@ -7,7 +7,7 @@ pub use meta::AstMeta;
 pub use opcode::Opcode;
 
 /// A list of possible AST expressions.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Ast {
 
     NullLiteral,
@@ -26,6 +26,12 @@ pub enum Ast {
 
     /// A string literal.
     StringLiteral(String),
+
+    /// A literal array of items, such as `[item1, 2, 3, true, false]`.
+    ListLiteral(Vec<AstMeta>),
+
+    /// A function call with the given arguments.
+    FunctionCall(Box<AstMeta>, Vec<AstMeta>),
 
     /// A binary expression with two operands.
     /// 

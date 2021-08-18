@@ -50,6 +50,90 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Parses a list of Flycatcher values.  The token provided is the token used to close the
+    /// list.
+    fn parse_list(&mut self, close: Token) -> Result<Vec<AstMeta>, ErrorKind> {
+        let mut state = 0; // 0 = value, 1 = ,
+        let mut args = vec![]; // list of items in the list.
+
+        let start = self.lexer.span().start;
+
+        loop {
+            let mut peekable = self.lexer.clone();
+
+            if let Some(tok) = peekable.next() {
+                if tok == close {
+                    self.lexer.next();
+                    break;
+                }
+            }
+
+            if state == 0 {
+                state = 1;
+                match self.parse_expression() {
+                    Ok(ast) => {
+                        args.push(ast);
+                    },
+                    Err(e) => {
+                        if e == ErrorKind::EndOfFile {
+                            let label = Label::primary((), start..self.lexer.span().end)
+                                .with_message(format!("this here array never closes."));
+                            
+                            let help = Label::secondary((), self.lexer.span())
+                                .with_message("try inserting a ']' here.");
+                                        
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0011")
+                                .with_labels(vec![label, help])
+                                .with_message(format!("array never closes."));
+                                        
+                            self.diagnostics.push(diagnostic);
+                    
+                            return Err(ErrorKind::SyntaxError);
+                        }
+
+                        return Err(e);
+                    }
+                }
+            } else if state == 1 {
+                state = 0;
+
+                if let Some(tok) = self.lexer.next() {
+                    if tok != Token::Comma {
+                        let label = Label::primary((), self.lexer.span())
+                            .with_message(format!("expected a comma here."));
+                                            
+                        let diagnostic = Diagnostic::error()
+                            .with_code("FC0012")
+                            .with_labels(vec![label])
+                            .with_message(format!("expected comma in array, got '{}'", self.lexer.slice()));
+                                            
+                        self.diagnostics.push(diagnostic);
+                        
+                        return Err(ErrorKind::SyntaxError);
+                    }
+                } else {
+                    let label = Label::primary((), start..self.lexer.span().end)
+                        .with_message(format!("this here array never closes."));
+
+                    let help = Label::secondary((), self.lexer.span())
+                        .with_message("try inserting a '[' here.");
+                                        
+                    let diagnostic = Diagnostic::error()
+                        .with_code("FC0011")
+                        .with_labels(vec![label, help])
+                        .with_message(format!("array never closes."));
+                                        
+                    self.diagnostics.push(diagnostic);
+                    
+                    return Err(ErrorKind::SyntaxError);
+                }
+            }
+        }
+
+        Ok(args)
+    }
+
     /// Parses a single literal token from the lexer.
     fn parse_literal(&mut self) -> Result<AstMeta, ErrorKind> {
         if let Some(tok) = self.lexer.next() {
@@ -114,6 +198,20 @@ impl<'a> Parser<'a> {
                     self.lexer.span(),
                     Ast::StringLiteral(str.into())
                 ))
+            } else if tok == Token::OBrack {
+                // Array literal.
+                let start = self.lexer.span().start;
+                match self.parse_list(Token::CBrack) {
+                    Ok(ast) => {
+                        Ok(
+                            AstMeta::new(
+                                start..self.lexer.span().end,
+                                Ast::ListLiteral(ast)
+                            )
+                        )
+                    }
+                    Err(e) => Err(e),
+                }
             } else {
                 // The token is unrecognized, so we have to give the correct error message.
                 if tok == Token::Invalid {
@@ -176,7 +274,7 @@ impl<'a> Parser<'a> {
                             )
                         );
                         // Move on to the next token.
-                        self.lexer.next();
+                        //self.lexer.next();
                     } else {
                         // Trying to use a `.` to index with anything other than an identifier
                         // always results in an error.
@@ -308,7 +406,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses an expression operand.
-    fn parse_primary(&mut self) -> Result<AstMeta, ErrorKind> {
+    fn parse_secondary(&mut self) -> Result<AstMeta, ErrorKind> {
         let mut peekable = self.lexer.clone();
         
         if let Some(tok) = peekable.next() {
@@ -390,84 +488,8 @@ impl<'a> Parser<'a> {
                         return Err(e);
                     }
                 }
-            } else if tok == Token::OParen {
-                self.lexer.next();
-                let start = self.lexer.span().start;
-                match self.parse_expression() {
-                    Ok(ast) => {
-                        // Check if there's a closing bracket
-
-                        if let Some(tok) = self.lexer.next() {
-                            if tok == Token::CParen {
-                                return Ok(
-                                    ast
-                                );
-                            } else {
-                                let label = Label::primary((), self.lexer.span())
-                                    .with_message(format!("expected a closing parenthesis before this."));
-                                
-                                let diagnostic = Diagnostic::error()
-                                    .with_code("FC0008")
-                                    .with_labels(vec![label])
-                                    .with_message(format!("expected a closing parenthesis instead of '{}'", self.lexer.slice()));
-                                
-                                self.diagnostics.push(diagnostic);
-            
-                                return Err(ErrorKind::SyntaxError);
-                            }
-                        } else {
-                            let label = Label::primary((), start..self.lexer.span().end)
-                                .with_message(format!("unclosed parenthesis here."));
-                            
-                            let diagnostic = Diagnostic::error()
-                                .with_code("FC0009")
-                                .with_labels(vec![label])
-                                .with_message(format!("you never closed this parenthesis expression"));
-                            
-                            self.diagnostics.push(diagnostic);
-        
-                            return Err(ErrorKind::SyntaxError);
-                        }
-                    },
-                    Err(e) => {
-                        // We need to check if an error message has been sent, if not,
-                        // we'll need to send our own.
-                        if e == ErrorKind::EndOfFile {
-                            // No error was emitted.
-                            let label = Label::primary((), start..self.lexer.span().end)
-                                .with_message(format!("unclosed brackets here."));
-                            
-                            let diagnostic = Diagnostic::error()
-                                .with_code("FC0005")
-                                .with_labels(vec![label])
-                                .with_message(format!("you indexed an object with unclosed brackets."));
-                            
-                            self.diagnostics.push(diagnostic);
-        
-                            return Err(ErrorKind::SyntaxError);
-                        }
-                    }
-                }
             } else {
-                match self.parse_literal() {
-                    Ok(ast) => {
-                        let mut peekable = self.lexer.clone();
-
-                        if let Some(tok) = peekable.next() {
-                            // Check if the literal is being indexed with a `.` or `[`.
-                            if tok == Token::Dot || tok == Token::OBrack {
-                                //self.lexer.next();
-
-                                return self.parse_index(ast);
-                            }
-                        }
-
-                        return Ok(ast);
-                    },
-                    Err(e) => {
-                        return Err(e);
-                    }
-                }
+                return self.parse_literal()
             }
         }
 
@@ -508,7 +530,6 @@ impl<'a> Parser<'a> {
                     tok = self.lexer.clone().next();
         
                     while let Some(lookahead2) = tok {
-                        dbg!(lookahead2);
                         if let Some(op2) = get_operator(lookahead2) {
                             if op2.precedence() >= op.precedence() {
                                 right = match self.parse_binary(right, min + 1) {
@@ -586,6 +607,92 @@ impl<'a> Parser<'a> {
         if let Some(lookahead) = peekable.next() {
 
         }*/
+    }
+
+    /// Recursively parses function calls and object indexes.
+    fn parse_opt_ending(&mut self, left: AstMeta) -> Result<AstMeta, ErrorKind> {
+        if let Some(tok) = self.lexer.clone().next() {
+            if tok == Token::OParen {
+                self.lexer.next();
+                match self.parse_list(Token::CParen) {
+                    Ok(args) => {
+                        return self.parse_opt_ending(
+                            AstMeta::new(
+                                left.range.start..self.lexer.span().end,
+                                Ast::FunctionCall(
+                                    left.as_box(),
+                                    args
+                                )
+                            )
+                        )
+                    },
+                    Err(e) => {
+                        if e == ErrorKind::EndOfFile {
+                            // Throw our own diagnostic messages.
+                            // No error was emitted.
+                            let label = Label::primary((), left.range.start..self.lexer.span().end)
+                                .with_message(format!("this function call's argument list is never closed."));
+                            
+                            let help = Label::secondary((), self.lexer.span())
+                                .with_message("try inserting a ')' here.");
+                                        
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0013")
+                                .with_labels(vec![label, help])
+                                .with_message(format!("argument list never closes."));
+                                        
+                            self.diagnostics.push(diagnostic);
+                    
+                            return Err(ErrorKind::SyntaxError);
+                        }
+
+                        return Err(e);
+                    }
+                }
+            } else if tok == Token::Dot || tok == Token::OBrack {
+                let l = left.clone();
+                match self.parse_index(left) {
+                    Ok(args) => {
+                        return self.parse_opt_ending(args)
+                    },
+                    Err(e) => {
+                        if e == ErrorKind::EndOfFile {
+                            // Throw our own diagnostic messages.
+                            // No error was emitted.
+                            let start = l.range.start;
+                            let label = Label::primary((), start..self.lexer.span().end)
+                                .with_message(format!("this function call's argument list is never closed."));
+                            
+                            let help = Label::secondary((), self.lexer.span())
+                                .with_message("try inserting a ')' here.");
+                                        
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0013")
+                                .with_labels(vec![label, help])
+                                .with_message(format!("argument list never closes."));
+                                        
+                            self.diagnostics.push(diagnostic);
+                    
+                            return Err(ErrorKind::SyntaxError);
+                        }
+
+                        return Err(e);
+                    }
+                }
+            }
+        }
+
+        Ok(left)
+    }
+
+    /// Wraps the parse_literal function and allows function calls.
+    fn parse_primary(&mut self) -> Result<AstMeta, ErrorKind> {
+        match self.parse_secondary() {
+            Ok(ast) => {
+                self.parse_opt_ending(ast)
+            },
+            Err(e) => Err(e),
+        }
     }
 
     /// Parses a single expression from the lexer, returning a single AST object that represents

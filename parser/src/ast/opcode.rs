@@ -3,7 +3,7 @@
 use flycatcher_lexer::Token;
 
 // A list of expression opcodes.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Opcode {
 
     /// The + operator.
