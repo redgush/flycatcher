@@ -3,7 +3,7 @@
 pub mod ast;
 pub mod error;
 
-use ast::{Ast, AstMeta, Opcode};
+use ast::{Ast, AstMeta};
 use ast::opcode::{get_operator, is_operator};
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use error::ErrorKind;
@@ -85,6 +85,34 @@ impl<'a> Parser<'a> {
                 Ok(AstMeta::new(
                     self.lexer.span(),
                     Ast::IdentifierLiteral(slice.into())
+                ))
+            } else if tok == Token::Number {
+                let slice = self.lexer.slice().to_string();
+
+                if slice.contains('.') || slice.contains('e') || slice.contains('E') {
+                    let f = slice.parse::<f64>().unwrap();
+                    Ok(AstMeta::new(
+                        self.lexer.span(),
+                        Ast::FloatLiteral(f)
+                    ))
+                } else {
+                    let i = slice.parse::<i64>().unwrap();
+                    Ok(AstMeta::new(
+                        self.lexer.span(),
+                        Ast::IntegerLiteral(i)
+                    ))
+                }
+                /*
+                let f = self.lexer.slice().parse::<f64>().unwrap();
+                Ok(AstMeta::new(
+                    self.lexer.span(),
+                    Ast::NumberLiteral(f)
+                ))*/
+            } else if tok == Token::String {
+                let str = &self.lexer.slice()[1..self.lexer.slice().len() - 1];
+                Ok(AstMeta::new(
+                    self.lexer.span(),
+                    Ast::StringLiteral(str.into())
                 ))
             } else {
                 // The token is unrecognized, so we have to give the correct error message.
@@ -511,12 +539,10 @@ impl<'a> Parser<'a> {
                             }
 
                         } else {
-                            //println!("{:?} Tok: {}", lookahead2, self.lexer.slice());
                             break;
                         }
                     }
 
-                    //println!("TEST");
 
                     left = AstMeta::new(
                         left.range.start..self.lexer.span().end,
@@ -528,7 +554,6 @@ impl<'a> Parser<'a> {
                     );
                     tok = self.lexer.clone().next();
                 } else {
-                    //println!(" :)");
                     self.lexer.next();
                     break;
                 }
