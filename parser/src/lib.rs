@@ -903,4 +903,37 @@ impl<'a> Parser<'a> {
         self.parse_primary()
     }
 
+    /// Iterates through all tokens until there is no tokens left to read.  This will return all
+    /// of the AST items found while parsing, if no errors occur.
+    pub fn parse(&mut self) -> Result<Vec<AstMeta>, ErrorKind> {
+        let mut ast = vec![];
+        loop {
+            // Ignore semicolons by peeking into the lexer's tokens, if there is in fact a
+            // semicolon, it should be skipped over.
+
+            if let Some(tok) = self.lexer.clone().next() {
+                if tok == Token::Semicolon {
+                    // Skip over the semicolon and continue the loop.
+                    self.lexer.next();
+                    continue;
+                }
+
+                match self.parse_expression() {
+                    Ok(item) => ast.push(item),
+                    Err(e) => {
+                        if e == ErrorKind::EndOfFile {
+                            break;
+                        }
+
+                        return Err(e)
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+
+        Ok(ast)
+    }
+
 }
