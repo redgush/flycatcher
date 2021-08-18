@@ -4,6 +4,7 @@ pub mod ast;
 pub mod error;
 
 use ast::{Ast, AstMeta, Opcode};
+use ast::opcode::{get_operator, is_operator};
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use error::ErrorKind;
 use flycatcher_lexer::{Lexer, Logos, Token};
@@ -445,12 +446,132 @@ impl<'a> Parser<'a> {
         return Err(ErrorKind::EndOfFile);
     }
 
+    /// Parses a binary expression with operator precedence, providing a minimum precedence for
+    /// operators.
+    fn parse_binary(&mut self, mut left: AstMeta, min: usize) -> Result<AstMeta, ErrorKind> {
+        let mut tok = self.lexer.clone().next();
+
+        while let Some(lookahead) = tok {
+            if let Some(op) = get_operator(lookahead) {
+                if op.precedence() < min {
+                    self.lexer.next();
+                    break;
+                }
+
+                self.lexer.next();
+                let mut right = match self.parse_primary() {
+                    Ok(ast) => ast,
+                    Err(e) => {
+                        if e == ErrorKind::EndOfFile {
+                            // No error was emitted.
+                            let label = Label::primary((), self.lexer.span())
+                                .with_message(format!("expected right hand side of expression here."));
+                            
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0010")
+                                .with_labels(vec![label])
+                                .with_message(format!("expected right hand side of expression."));
+                            
+                            self.diagnostics.push(diagnostic);
+    
+                            return Err(ErrorKind::SyntaxError);
+                        }
+    
+                        return Err(e);
+                    }
+                };
+    
+                tok = self.lexer.clone().next();
+    
+                while let Some(lookahead2) = tok {
+                    if let Some(op) = get_operator(lookahead2) {
+                        if op.precedence() > min {
+                            right = match self.parse_binary(right, min + 1) {
+                                Ok(ast) => ast,
+                                Err(e) => {
+                                    if e == ErrorKind::EndOfFile {
+                                        // No error was emitted.
+                                        let label = Label::primary((), self.lexer.span())
+                                            .with_message(format!("expected right hand side of expression here."));
+                                        
+                                        let diagnostic = Diagnostic::error()
+                                            .with_code("FC0010")
+                                            .with_labels(vec![label])
+                                            .with_message(format!("expected right hand side of expression."));
+                                        
+                                        self.diagnostics.push(diagnostic);
+                
+                                        return Err(ErrorKind::SyntaxError);
+                                    }
+                
+                                    return Err(e);
+                                }
+                            };
+    
+                            tok = self.lexer.clone().next();
+                        } else {
+                            break;
+                        }
+
+                        //self.lexer.next();
+                    } else {
+                        break;
+                    }
+                }
+
+                left = AstMeta::new(
+                    left.range.start..self.lexer.span().end,
+                    Ast::BinaryExpression(
+                        op,
+                        left.as_box(),
+                        right.as_box()
+                    )
+                );
+                tok = self.lexer.clone().next();
+            } else {
+                break;
+            }
+        }
+        
+        Ok(left)
+        /*
+        loop {
+            let mut peekable = self.lexer.clone();
+
+            if let Some(tok) = peekable.next() {
+                if let Some(op) = get_operator(tok) {
+                    if op.precedence() >= min {
+
+                    } else {
+                        break;
+                    }
+                } else {
+                    // The next token isn't an operator, which means the expression is ending.
+                    break;
+                }
+            }
+        }*/
+        /*
+        let peekable = self.lexer.clone();
+
+        if let Some(lookahead) = peekable.next() {
+
+        }*/
+    }
+
     /// Parses a single expression from the lexer, returning a single AST object that represents
     /// it, or an ErrorKind enum object describing how it ended.  If `Err(ErrorKind::EndOfFile)`
     /// was returned, that only means that there was no expression left, not that an actual
     /// error occurred.
     pub fn parse_expression(&mut self) -> Result<AstMeta, ErrorKind> {
-        self.parse_primary()
+        match self.parse_primary() {
+            Ok(ast) => {
+                self.parse_binary(ast, 0)
+            },
+            Err(e) => {
+                return Err(e);
+            }
+        }
     }
 
 }
