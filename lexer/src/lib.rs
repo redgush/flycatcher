@@ -14,7 +14,7 @@ pub use logos::{Lexer, Logos};
 /// assert_eq!(lexer.next(), Some(Token::String));
 /// assert_eq!(lexer.slice(), "'Hello, world!'");
 /// ```
-#[derive(Clone, Debug, Logos, PartialEq)]
+#[derive(Clone, Copy, Debug, Logos, PartialEq)]
 pub enum Token {
 
     /// A period, used for indexing objects.

@@ -453,81 +453,85 @@ impl<'a> Parser<'a> {
 
         while let Some(lookahead) = tok {
             if let Some(op) = get_operator(lookahead) {
-                if op.precedence() < min {
+                if op.precedence() >= min {
+                    self.lexer.next();
+                    let mut right = match self.parse_primary() {
+                        Ok(ast) => ast,
+                        Err(e) => {
+                            if e == ErrorKind::EndOfFile {
+                                // No error was emitted.
+                                let label = Label::primary((), self.lexer.span())
+                                    .with_message(format!("expected right hand side of expression here."));
+                                
+                                let diagnostic = Diagnostic::error()
+                                    .with_code("FC0010")
+                                    .with_labels(vec![label])
+                                    .with_message(format!("expected right hand side of expression."));
+                                
+                                self.diagnostics.push(diagnostic);
+        
+                                return Err(ErrorKind::SyntaxError);
+                            }
+        
+                            return Err(e);
+                        }
+                    };
+        
+                    tok = self.lexer.clone().next();
+        
+                    while let Some(lookahead2) = tok {
+                        dbg!(lookahead2);
+                        if let Some(op2) = get_operator(lookahead2) {
+                            if op2.precedence() >= op.precedence() {
+                                right = match self.parse_binary(right, min + 1) {
+                                    Ok(ast) => ast,
+                                    Err(e) => {
+                                        if e == ErrorKind::EndOfFile {
+                                            // No error was emitted.
+                                            let label = Label::primary((), self.lexer.span())
+                                                .with_message(format!("expected right hand side of expression here."));
+                                            
+                                            let diagnostic = Diagnostic::error()
+                                                .with_code("FC0010")
+                                                .with_labels(vec![label])
+                                                .with_message(format!("expected right hand side of expression."));
+                                            
+                                            self.diagnostics.push(diagnostic);
+                    
+                                            return Err(ErrorKind::SyntaxError);
+                                        }
+                    
+                                        return Err(e);
+                                    }
+                                };
+        
+                                tok = self.lexer.clone().next();
+                            } else {
+                                break;
+                            }
+
+                        } else {
+                            //println!("{:?} Tok: {}", lookahead2, self.lexer.slice());
+                            break;
+                        }
+                    }
+
+                    //println!("TEST");
+
+                    left = AstMeta::new(
+                        left.range.start..self.lexer.span().end,
+                        Ast::BinaryExpression(
+                            op,
+                            left.as_box(),
+                            right.as_box()
+                        )
+                    );
+                    tok = self.lexer.clone().next();
+                } else {
+                    //println!(" :)");
                     self.lexer.next();
                     break;
                 }
-
-                self.lexer.next();
-                let mut right = match self.parse_primary() {
-                    Ok(ast) => ast,
-                    Err(e) => {
-                        if e == ErrorKind::EndOfFile {
-                            // No error was emitted.
-                            let label = Label::primary((), self.lexer.span())
-                                .with_message(format!("expected right hand side of expression here."));
-                            
-                            let diagnostic = Diagnostic::error()
-                                .with_code("FC0010")
-                                .with_labels(vec![label])
-                                .with_message(format!("expected right hand side of expression."));
-                            
-                            self.diagnostics.push(diagnostic);
-    
-                            return Err(ErrorKind::SyntaxError);
-                        }
-    
-                        return Err(e);
-                    }
-                };
-    
-                tok = self.lexer.clone().next();
-    
-                while let Some(lookahead2) = tok {
-                    if let Some(op) = get_operator(lookahead2) {
-                        if op.precedence() > min {
-                            right = match self.parse_binary(right, min + 1) {
-                                Ok(ast) => ast,
-                                Err(e) => {
-                                    if e == ErrorKind::EndOfFile {
-                                        // No error was emitted.
-                                        let label = Label::primary((), self.lexer.span())
-                                            .with_message(format!("expected right hand side of expression here."));
-                                        
-                                        let diagnostic = Diagnostic::error()
-                                            .with_code("FC0010")
-                                            .with_labels(vec![label])
-                                            .with_message(format!("expected right hand side of expression."));
-                                        
-                                        self.diagnostics.push(diagnostic);
-                
-                                        return Err(ErrorKind::SyntaxError);
-                                    }
-                
-                                    return Err(e);
-                                }
-                            };
-    
-                            tok = self.lexer.clone().next();
-                        } else {
-                            break;
-                        }
-
-                        //self.lexer.next();
-                    } else {
-                        break;
-                    }
-                }
-
-                left = AstMeta::new(
-                    left.range.start..self.lexer.span().end,
-                    Ast::BinaryExpression(
-                        op,
-                        left.as_box(),
-                        right.as_box()
-                    )
-                );
-                tok = self.lexer.clone().next();
             } else {
                 break;
             }
