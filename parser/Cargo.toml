@@ -12,4 +12,4 @@ edition = "2018"
 
 [dependencies]
 codespan-reporting = "0.11.1"
-flycatcher-lexer = { path = "../lexer" }
+flycatcher-lexer = { path = "../lexer", version = "0.1.0" }
