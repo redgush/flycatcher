@@ -373,7 +373,7 @@ impl<'a> Parser<'a> {
                                             )
                                         )
                                     } else {
-                                        let label = Label::primary((), start..self.lexer.span().end)
+                                        let label = Label::primary((), self.lexer.span())
                                             .with_message(format!("expected a closing bracket before this."));
                                         
                                         let diagnostic = Diagnostic::error()
