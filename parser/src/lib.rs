@@ -139,6 +139,7 @@ impl<'a> Parser<'a> {
                     state = 1;
 
                     if tok == Token::Identifier {
+                        self.lexer.next();
                         items.push(
                             AstMeta::new(
                                 self.lexer.span(),
@@ -234,8 +235,12 @@ impl<'a> Parser<'a> {
                 
                                     return Err(ErrorKind::SyntaxError);
                                 }
+
+                                return Err(e);
                             }
                         }
+                    } else {
+                        break;
                     }
                 }
             } else {
@@ -415,7 +420,25 @@ impl<'a> Parser<'a> {
                     }
                 }
             } else {
-                return self.parse_literal();
+                match self.parse_literal() {
+                    Ok(ast) => {
+                        let mut peekable = self.lexer.clone();
+
+                        if let Some(tok) = peekable.next() {
+                            // Check if the literal is being indexed with a `.` or `[`.
+                            if tok == Token::Dot || tok == Token::OBrack {
+                                //self.lexer.next();
+
+                                return self.parse_index(ast);
+                            }
+                        }
+
+                        return Ok(ast);
+                    },
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
             }
         }
 
