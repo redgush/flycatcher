@@ -17,6 +17,91 @@ pub use logos::{Lexer, Logos};
 #[derive(Clone, Copy, Debug, Logos, PartialEq)]
 pub enum Token {
 
+    /// The equal comparison operator.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("21 == 21");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// assert_eq!(lexer.next(), Some(Token::EqualsEquals));
+    /// assert_eq!(lexer.slice(), "==");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// ```
+    #[token("==")]
+    EqualsEquals,
+
+    /// The greater than or equal comparison operator.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("21 >= 21");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// assert_eq!(lexer.next(), Some(Token::GreaterThanOrEqual));
+    /// assert_eq!(lexer.slice(), ">");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// ```
+    #[token(">=")]
+    GreaterThanOrEqual,
+
+    /// The less than or equal comparison operator.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("21 <= 21");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// assert_eq!(lexer.next(), Some(Token::GreaterThanOrEqual));
+    /// assert_eq!(lexer.slice(), "<=");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// ```
+    #[token("<=")]
+    LessThanOrEqual,
+
+    /// The greater than comparison operator.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("21 > 21");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// assert_eq!(lexer.next(), Some(Token::GreaterThan));
+    /// assert_eq!(lexer.slice(), ">");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// ```
+    #[token(">")]
+    GreaterThan,
+
+    /// The less than comparison operator.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("21 < 21");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// assert_eq!(lexer.next(), Some(Token::LessThan));
+    /// assert_eq!(lexer.slice(), "<");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// ```
+    #[token("<")]
+    LessThan,
+
     /// A period, used for indexing objects.
     /// 
     /// ```
