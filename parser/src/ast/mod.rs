@@ -15,8 +15,17 @@ pub enum Ast {
     /// A boolean literal, either `true` or `false`.
     BooleanLiteral(bool),
 
+    /// A 64-bit floating point number literal.
+    FloatLiteral(f64),
+
+    /// A 64-bit integer literal.
+    IntegerLiteral(i64),
+
     /// An identifier literal.
     IdentifierLiteral(String),
+
+    /// A string literal.
+    StringLiteral(String),
 
     /// A binary expression with two operands.
     /// 
