@@ -192,7 +192,7 @@ impl<'a> Parser<'a> {
                                         )
                                     } else {
                                         let label = Label::primary((), start..self.lexer.span().end)
-                                            .with_message(format!("expected a closing before this."));
+                                            .with_message(format!("expected a closing bracket before this."));
                                         
                                         let diagnostic = Diagnostic::error()
                                             .with_code("FC0006")
@@ -284,7 +284,7 @@ impl<'a> Parser<'a> {
                 let start = self.lexer.span().start;
                 let end = self.lexer.span().end;
 
-                match self.parse_literal() {
+                match self.parse_primary() {
                     Ok(ast) => {
                         return Ok(
                             AstMeta::new(
@@ -317,13 +317,13 @@ impl<'a> Parser<'a> {
                         return Err(e);
                     }
                 }
-            }if tok == Token::Plus {
+            } if tok == Token::Plus {
                 self.lexer.next();
 
                 let start = self.lexer.span().start;
                 let end = self.lexer.span().end;
 
-                match self.parse_literal() {
+                match self.parse_primary() {
                     Ok(ast) => {
                         return Ok(
                             AstMeta::new(
@@ -357,7 +357,63 @@ impl<'a> Parser<'a> {
                     }
                 }
             } else if tok == Token::OParen {
-                
+                self.lexer.next();
+                let start = self.lexer.span().start;
+                match self.parse_expression() {
+                    Ok(ast) => {
+                        // Check if there's a closing bracket
+
+                        if let Some(tok) = self.lexer.next() {
+                            if tok == Token::CParen {
+                                return Ok(
+                                    ast
+                                );
+                            } else {
+                                let label = Label::primary((), self.lexer.span())
+                                    .with_message(format!("expected a closing parenthesis before this."));
+                                
+                                let diagnostic = Diagnostic::error()
+                                    .with_code("FC0008")
+                                    .with_labels(vec![label])
+                                    .with_message(format!("expected a closing parenthesis instead of '{}'", self.lexer.slice()));
+                                
+                                self.diagnostics.push(diagnostic);
+            
+                                return Err(ErrorKind::SyntaxError);
+                            }
+                        } else {
+                            let label = Label::primary((), start..self.lexer.span().end)
+                                .with_message(format!("unclosed parenthesis here."));
+                            
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0009")
+                                .with_labels(vec![label])
+                                .with_message(format!("you never closed this parenthesis expression"));
+                            
+                            self.diagnostics.push(diagnostic);
+        
+                            return Err(ErrorKind::SyntaxError);
+                        }
+                    },
+                    Err(e) => {
+                        // We need to check if an error message has been sent, if not,
+                        // we'll need to send our own.
+                        if e == ErrorKind::EndOfFile {
+                            // No error was emitted.
+                            let label = Label::primary((), start..self.lexer.span().end)
+                                .with_message(format!("unclosed brackets here."));
+                            
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0005")
+                                .with_labels(vec![label])
+                                .with_message(format!("you indexed an object with unclosed brackets."));
+                            
+                            self.diagnostics.push(diagnostic);
+        
+                            return Err(ErrorKind::SyntaxError);
+                        }
+                    }
+                }
             } else {
                 return self.parse_literal();
             }
