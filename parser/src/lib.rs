@@ -222,7 +222,7 @@ impl<'a> Parser<'a> {
                                 // we'll need to send our own.
                                 if e == ErrorKind::EndOfFile {
                                     // No error was emitted.
-                                    let label = Label::primary((), start..self.lexer.span().end)
+                                    let label = Label::primary((), self.lexer.span())
                                         .with_message(format!("unclosed brackets here."));
                                     
                                     let diagnostic = Diagnostic::error()
