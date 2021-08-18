@@ -779,6 +779,111 @@ impl<'a> Parser<'a> {
                         return Err(e)
                     },
                 }
+            } else if tok == Token::PreprocessorIdentifier {
+                // Preprocessors do nothing at the base parsing phase.
+                self.lexer.next();
+                let name = self.lexer.slice();
+                let start = self.lexer.span().start;
+                //let name_end = self.lexer.span().end;
+
+                let n = AstMeta::new(
+                    self.lexer.span(),
+                    Ast::IdentifierLiteral(name[1..].into())
+                );
+
+                if let Some(arg) = self.lexer.clone().next() {
+                    if arg == Token::String {
+                        self.lexer.next();
+                        let t = self.lexer.slice();
+
+                        return Ok(
+                            AstMeta::new(
+                                start..self.lexer.span().end,
+                                Ast::PreprocessorStatement(
+                                    n.as_box(),
+                                    vec![
+                                        AstMeta::new(
+                                            self.lexer.span(), 
+                                            Ast::StringLiteral(t[1..t.len() - 1].into())
+                                        )
+                                    ]
+                                )
+                            )
+                        )
+                    } else if arg == Token::OParen {
+                        self.lexer.next();
+
+                        match self.parse_list(Token::CParen) {
+                            Ok(ast) => {
+                                return Ok(
+                                    AstMeta::new(
+                                        start..self.lexer.span().end,
+                                        Ast::PreprocessorStatement(
+                                            n.as_box(),
+                                            ast
+                                        )
+                                    )
+                                )
+                            },
+                            Err(e) => return Err(e)
+                        }
+                    } else if arg == Token::OBrack {
+                        self.lexer.next();
+
+                        match self.parse_list(Token::CBrack) {
+                            Ok(ast) => {
+                                return Ok(
+                                    AstMeta::new(
+                                        start..self.lexer.span().end,
+                                        Ast::PreprocessorStatement(
+                                            n.as_box(),
+                                            ast
+                                        )
+                                    )
+                                )
+                            },
+                            Err(e) => return Err(e)
+                        }
+                    } else if arg == Token::Identifier {
+                        self.lexer.next();
+                        let t = self.lexer.slice();
+
+                        return Ok(
+                            AstMeta::new(
+                                start..self.lexer.span().end,
+                                Ast::PreprocessorStatement(
+                                    n.as_box(),
+                                    vec![
+                                        AstMeta::new(
+                                            self.lexer.span(), 
+                                            Ast::IdentifierLiteral(t.into())
+                                        )
+                                    ]
+                                )
+                            )
+                        )
+                    } else {
+                        return Ok(
+                            AstMeta::new(
+                                start..self.lexer.span().end,
+                                Ast::PreprocessorStatement(
+                                    n.as_box(),
+                                    vec![]
+                                )
+                            )
+                        )
+                    }
+                } else {
+                    return Ok(
+                        AstMeta::new(
+                            start..self.lexer.span().end,
+                            Ast::PreprocessorStatement(
+                                n.as_box(),
+                                vec![]
+                            )
+                        )
+                    )
+                }
             } else {
                 match self.parse_secondary() {
                     Ok(ast) => return self.parse_opt_ending(ast),

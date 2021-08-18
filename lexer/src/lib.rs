@@ -384,6 +384,19 @@ pub enum Token {
     #[regex("\"([^\"\\\\]*(\\.[^\"\\\\]*)*)\"|'([^'\\\\]*(\\.[^'\\\\]*)*)'")]
     String,
 
+    /// A preprocessor identifier.  Used before compilations to preprocess the source.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("#my_preprocessor");
+    /// assert_eq!(lexer.next(), Some(Token::PreprocessorIdentifier));
+    /// assert_eq!(lexer.slice(), "#my_preprocessor");
+    /// ```
+    #[regex(r"#[a-zA-Z_$][a-zA-Z_$0-9]*")]
+    PreprocessorIdentifier,
+
     /// A Flycatcher style identifier literal.  An identifier must start with one of
     /// `a-z`/`A-Z`, `_` or `$`.  Any character after that must be one of `a-z`/`A-Z`, `_`, `$`
     /// or `0-9`.

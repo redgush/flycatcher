@@ -60,4 +60,7 @@ pub enum Ast {
     /// Negates a logical expression, the `!` operator.  For example, (`!1 == 1`).
     NotUnary(Box<AstMeta>),
 
+    /// A preprocessor statement with a given name and arguments.
+    PreprocessorStatement(Box<AstMeta>, Vec<AstMeta>),
+
 }
