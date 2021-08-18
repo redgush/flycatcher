@@ -57,4 +57,7 @@ pub enum Ast {
     /// This is caused by using the `-` operator at the start of an operand, such as `-10`.
     NegativeUnary(Box<AstMeta>),
 
+    /// Negates a logical expression, the `!` operator.  For example, (`!1 == 1`).
+    NotUnary(Box<AstMeta>),
+
 }

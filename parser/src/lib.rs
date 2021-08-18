@@ -4,7 +4,7 @@ pub mod ast;
 pub mod error;
 
 use ast::{Ast, AstMeta};
-use ast::opcode::{get_operator, is_operator};
+use ast::opcode::get_operator;
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use error::ErrorKind;
 use flycatcher_lexer::{Lexer, Logos, Token};
@@ -211,6 +211,60 @@ impl<'a> Parser<'a> {
                         )
                     }
                     Err(e) => Err(e),
+                }
+            } else if tok == Token::OParen {
+                let start = self.lexer.span().start;
+                match self.parse_expression() {
+                    Ok(ast) => {
+                        if let Some(t) = self.lexer.next() {
+                            if t != Token::CParen {
+                                let label = Label::primary((), start..self.lexer.span().end)
+                                    .with_message("expected closing parenthesis in this expression.");
+                                
+                                let diagnostic = Diagnostic::error()
+                                    .with_code("FC0016")
+                                    .with_labels(vec![label])
+                                    .with_message(format!("expected a closing parenthesis."));
+                                
+                                self.diagnostics.push(diagnostic);
+
+                                return Err(ErrorKind::SyntaxError);
+                            }
+                        } else {
+                            let label = Label::primary((), start..self.lexer.span().end)
+                                .with_message("expected closing parenthesis in this expression.");
+                                
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0016")
+                                .with_labels(vec![label])
+                                .with_message(format!("expected a closing parenthesis."));
+                                
+                            self.diagnostics.push(diagnostic);
+
+                            return Err(ErrorKind::SyntaxError);
+                        }
+
+                        Ok(
+                            ast
+                        )
+                    }
+                    Err(e) => {
+                        if e == ErrorKind::EndOfFile {
+                            let label = Label::primary((), start..self.lexer.span().end)
+                                .with_message("expected an expression inside of these parenthesis.");
+                            
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0015")
+                                .with_labels(vec![label])
+                                .with_message(format!("expected an expression."));
+                            
+                            self.diagnostics.push(diagnostic);
+
+                            return Err(ErrorKind::SyntaxError);
+                        }
+
+                        Err(e)
+                    },
                 }
             } else {
                 // The token is unrecognized, so we have to give the correct error message.
@@ -682,17 +736,58 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Ok(left)
+        self.parse_binary(left, 0)
     }
 
     /// Wraps the parse_literal function and allows function calls.
     fn parse_primary(&mut self) -> Result<AstMeta, ErrorKind> {
-        match self.parse_secondary() {
-            Ok(ast) => {
-                self.parse_opt_ending(ast)
-            },
-            Err(e) => Err(e),
+        if let Some(tok) = self.lexer.clone().next() {
+            if tok == Token::Exclaimation {
+                self.lexer.next();
+
+                let start = self.lexer.span().start;
+
+                match self.parse_primary() {
+                    Ok(ast) => {
+                        return Ok(
+                            AstMeta::new(
+                                start..self.lexer.span().end,
+                                Ast::NotUnary(
+                                    ast.as_box()
+                                )
+                            )
+                        )
+                    },
+                    Err(e) => {
+                        if e == ErrorKind::EndOfFile {
+                            let label = Label::primary((), start..self.lexer.span().end)
+                                .with_message(format!("'!' expression requires an operand (a.k.a, another expression)."));
+                            
+                            let help = Label::secondary((), self.lexer.span())
+                                .with_message("expected an expression here, we see the end of the file.");
+                                            
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0014")
+                                .with_labels(vec![label, help])
+                                .with_message(format!("expected an expression."));
+                                            
+                            self.diagnostics.push(diagnostic);
+                        
+                            return Err(ErrorKind::SyntaxError);
+                        }
+
+                        return Err(e)
+                    },
+                }
+            } else {
+                match self.parse_secondary() {
+                    Ok(ast) => return self.parse_opt_ending(ast),
+                    Err(e) => return Err(e),
+                }
+            }
         }
+
+        Err(ErrorKind::EndOfFile)
     }
 
     /// Parses a single expression from the lexer, returning a single AST object that represents
@@ -700,14 +795,7 @@ impl<'a> Parser<'a> {
     /// was returned, that only means that there was no expression left, not that an actual
     /// error occurred.
     pub fn parse_expression(&mut self) -> Result<AstMeta, ErrorKind> {
-        match self.parse_primary() {
-            Ok(ast) => {
-                self.parse_binary(ast, 0)
-            },
-            Err(e) => {
-                return Err(e);
-            }
-        }
+        self.parse_primary()
     }
 
 }

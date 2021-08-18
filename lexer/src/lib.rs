@@ -34,6 +34,23 @@ pub enum Token {
     #[token("==")]
     EqualsEquals,
 
+    /// The equal comparison operator.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("21 != 21");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// assert_eq!(lexer.next(), Some(Token::ExclaimationEquals));
+    /// assert_eq!(lexer.slice(), "!=");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "21");
+    /// ```
+    #[token("!=")]
+    ExclaimationEquals,
+
     /// The greater than or equal comparison operator.
     /// 
     /// ```
@@ -194,6 +211,21 @@ pub enum Token {
     /// ```
     #[token(")")]
     CParen,
+
+    /// The exclaimation mark operator.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("!1");
+    /// assert_eq!(lexer.next(), Some(Token::Exclaimation));
+    /// assert_eq!(lexer.slice(), "!");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "1");
+    /// ```
+    #[token("!")]
+    Exclaimation,
 
     /// The plus (`+`) operator.
     /// 
