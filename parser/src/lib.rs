@@ -919,7 +919,27 @@ impl<'a> Parser<'a> {
                 }
 
                 match self.parse_expression() {
-                    Ok(item) => ast.push(item),
+                    Ok(item) => {
+                        ast.push(item);
+
+                        if let Some(tok) = self.lexer.clone().next() {
+                            if tok == Token::Semicolon {
+                                // Skip over the semicolon and continue the loop.
+                                self.lexer.next();
+                                continue;
+                            } else {
+                                let label = Label::primary((), self.lexer.span())
+                                    .with_message(format!("you should add a semicolon here."));
+                                                
+                                let diagnostic = Diagnostic::warning()
+                                    .with_code("FC0015")
+                                    .with_labels(vec![label])
+                                    .with_message(format!("add expression to the end of this statement."))
+                                    .with_notes(vec!["expressions without semicolons can lead to\nunexpected behavior.".into()]);
+                                self.diagnostics.push(diagnostic);
+                            }
+                        }
+                    },
                     Err(e) => {
                         if e == ErrorKind::EndOfFile {
                             break;
