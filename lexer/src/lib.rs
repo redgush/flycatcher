@@ -17,6 +17,99 @@ pub use logos::{Lexer, Logos};
 #[derive(Clone, Debug, Logos, PartialEq)]
 pub enum Token {
 
+    /// A period, used for indexing objects.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("item1.item2");
+    /// assert_eq!(lexer.next(), Some(Token::Identifier));
+    /// assert_eq!(lexer.slice(), "item1");
+    /// assert_eq!(lexer.next(), Some(Token::Dot));
+    /// assert_eq!(lexer.slice(), ".");
+    /// assert_eq!(lexer.next(), Some(Token::Identifier));
+    /// assert_eq!(lexer.slice(), "item2");
+    /// ```
+    #[token(".")]
+    Dot,
+
+    /// An opening bracket character (`[`).
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("item1[item2]");
+    /// assert_eq!(lexer.next(), Some(Token::Identifier));
+    /// assert_eq!(lexer.slice(), "item1");
+    /// assert_eq!(lexer.next(), Some(Token::OBrack));
+    /// assert_eq!(lexer.slice(), "[");
+    /// assert_eq!(lexer.next(), Some(Token::Identifier));
+    /// assert_eq!(lexer.slice(), "item2");
+    /// assert_eq!(lexer.next(), Some(Token::CBrack));
+    /// assert_eq!(lexer.slice(), "]");
+    /// ```
+    #[token("[")]
+    OBrack,
+
+    /// A closing bracket character (`[`).
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("item1[item2]");
+    /// assert_eq!(lexer.next(), Some(Token::Identifier));
+    /// assert_eq!(lexer.slice(), "item1");
+    /// assert_eq!(lexer.next(), Some(Token::OBrack));
+    /// assert_eq!(lexer.slice(), "[");
+    /// assert_eq!(lexer.next(), Some(Token::Identifier));
+    /// assert_eq!(lexer.slice(), "item2");
+    /// assert_eq!(lexer.next(), Some(Token::CBrack));
+    /// assert_eq!(lexer.slice(), "]");
+    /// ```
+    #[token("]")]
+    CBrack,
+
+    /// An opening parenthesis character (`(`).
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("func(1)");
+    /// assert_eq!(lexer.next(), Some(Token::Identifier));
+    /// assert_eq!(lexer.slice(), "func");
+    /// assert_eq!(lexer.next(), Some(Token::OParen));
+    /// assert_eq!(lexer.slice(), "(");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "1");
+    /// assert_eq!(lexer.next(), Some(Token::CParen));
+    /// assert_eq!(lexer.slice(), ")");
+    /// ```
+    #[token("(")]
+    OParen,
+
+    /// An opening parenthesis character (`)`).
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("func(1)");
+    /// assert_eq!(lexer.next(), Some(Token::Identifier));
+    /// assert_eq!(lexer.slice(), "func");
+    /// assert_eq!(lexer.next(), Some(Token::OParen));
+    /// assert_eq!(lexer.slice(), "(");
+    /// assert_eq!(lexer.next(), Some(Token::Number));
+    /// assert_eq!(lexer.slice(), "1");
+    /// assert_eq!(lexer.next(), Some(Token::CParen));
+    /// assert_eq!(lexer.slice(), ")");
+    /// ```
+    #[token(")")]
+    CParen,
+
     /// The plus (`+`) operator.
     /// 
     /// ```
@@ -179,7 +272,7 @@ pub enum Token {
     /// let mut lexer = Token::lexer(" \t\n");
     /// assert_eq!(lexer.next(), None);
     /// ```
-    #[regex(r"\s", logos::skip)]
+    #[regex(r"\s+", logos::skip)]
     Whitespace,
 
     /// The `Invalid` token matches any character that doesn't match any other token types, it's
