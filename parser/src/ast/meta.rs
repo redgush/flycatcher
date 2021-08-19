@@ -34,7 +34,8 @@ impl AstMeta {
         Box::new(
             Self {
                 range,
-                item
+                item,
+                has_semi: false,
             }
         )
     }
