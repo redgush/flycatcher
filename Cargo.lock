@@ -184,7 +184,7 @@ dependencies = [
 
 [[package]]
 name = "flycatcher"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "flycatcher-diagnostic",
@@ -196,21 +196,21 @@ dependencies = [
 
 [[package]]
 name = "flycatcher-diagnostic"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "codespan-reporting",
 ]
 
 [[package]]
 name = "flycatcher-lexer"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "logos",
 ]
 
 [[package]]
 name = "flycatcher-parser"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "codespan-reporting",
  "flycatcher-lexer",
@@ -218,7 +218,7 @@ dependencies = [
 
 [[package]]
 name = "flycatcherc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "flycatcher-diagnostic",
  "flycatcher-parser",
@@ -226,7 +226,7 @@ dependencies = [
 
 [[package]]
 name = "flycatcherc-clif"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "cranelift",
  "cranelift-codegen",
@@ -239,7 +239,7 @@ dependencies = [
 
 [[package]]
 name = "flycatcherc-link"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "fnv"
