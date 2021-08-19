@@ -370,6 +370,23 @@ pub enum Token {
     #[token(";")]
     Semicolon,
 
+    /// A colon (`:`)
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("hello: string");
+    /// assert_eq!(lexer.next(), Some(Token::Identifier));
+    /// assert_eq!(lexer.slice(), "hello");
+    /// assert_eq!(lexer.next(), Some(Token::Colon));
+    /// assert_eq!(lexer.slice(), ":");
+    /// assert_eq!(lexer.next(), Some(Token::Identifier));
+    /// assert_eq!(lexer.slice(), "string");
+    /// ```
+    #[token(":")]
+    Colon,
+
     /// A number literal that supports integers and floating point numbers, with an optional
     /// mantissa (exponent).
     /// 
