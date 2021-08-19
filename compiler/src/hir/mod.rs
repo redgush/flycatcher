@@ -43,6 +43,10 @@ pub enum Hir<'a> {
     /// supports division with the other type.
     Divide(Box<HirMeta<'a>>, Box<HirMeta<'a>>),
 
+    /// Sets a variable or property with the given name (first argument of tuple) to the value
+    /// of the second argument.
+    Set(Box<HirMeta<'a>>, Box<HirMeta<'a>>),
+
 }
 
 impl<'a> Hir<'a> {
@@ -66,6 +70,7 @@ impl<'a> Hir<'a> {
             Hir::Subtract(l, r) => l.item.get_type(symbols),
             Hir::Multiply(l, r) => l.item.get_type(symbols),
             Hir::Divide(l, r) => l.item.get_type(symbols),
+            _ => panic!("This HIR object has no type.")
         }
     }
 

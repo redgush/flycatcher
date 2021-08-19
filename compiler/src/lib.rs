@@ -143,10 +143,15 @@ impl<'a> FlycatcherFrontend<'a> {
         }
     }
 
+    /// Converts an AST expression to Flycatcher HIR.
     fn ast_expression(&mut self, ast: AstMeta) -> Option<HirMeta<'a>> {
         if let Some(hir) = self.ast_literal(ast.clone()) {
             Some(hir)
         } else {
+            if !self.successful {
+                return None;
+            }
+
             match ast.item {
                 Ast::BinaryExpression(op, left, right) => {
                     if op == Opcode::Add ||
@@ -159,18 +164,20 @@ impl<'a> FlycatcherFrontend<'a> {
                         let l = match self.ast_expression(*left) {
                             Some(item) => item,
                             None => {
-                                self.successful = false;
+                                if self.successful {
+                                    self.successful = false;
                     
-                                // Throw an error since the symbol requested isn't defined in this scope.
-                                let label = Label::primary((), ast.range)
-                                    .with_message("invalid expression here.");
-
-                                let diagnostic = Diagnostic::error()
-                                    .with_code("FC0020")
-                                    .with_labels(vec![label])
-                                    .with_message("invalid expression.");
-                                
-                                self.diagnostics.push(diagnostic);
+                                    // Throw an error since the symbol requested isn't defined in this scope.
+                                    let label = Label::primary((), ast.range)
+                                        .with_message("invalid expression here.");
+    
+                                    let diagnostic = Diagnostic::error()
+                                        .with_code("FC0020")
+                                        .with_labels(vec![label])
+                                        .with_message("invalid expression.");
+                                    
+                                    self.diagnostics.push(diagnostic);
+                                }
                                 return None;
                             }
                         };
@@ -178,18 +185,20 @@ impl<'a> FlycatcherFrontend<'a> {
                         let r = match self.ast_expression(*right) {
                             Some(item) => item,
                             None => {
-                                self.successful = false;
+                                if self.successful {
+                                    self.successful = false;
                     
-                                // Throw an error since the symbol requested isn't defined in this scope.
-                                let label = Label::primary((), ast.range)
-                                    .with_message("invalid expression here.");
-
-                                let diagnostic = Diagnostic::error()
-                                    .with_code("FC0020")
-                                    .with_labels(vec![label])
-                                    .with_message("invalid expression.");
-                                
-                                self.diagnostics.push(diagnostic);
+                                    // Throw an error since the symbol requested isn't defined in this scope.
+                                    let label = Label::primary((), ast.range)
+                                        .with_message("invalid expression here.");
+    
+                                    let diagnostic = Diagnostic::error()
+                                        .with_code("FC0020")
+                                        .with_labels(vec![label])
+                                        .with_message("invalid expression.");
+                                    
+                                    self.diagnostics.push(diagnostic);
+                                }
                                 return None;
                             }
                         };
@@ -246,6 +255,90 @@ impl<'a> FlycatcherFrontend<'a> {
                                 _ => panic!("Weird error occurred!"),
                             }
                         ))
+                    } else if op == Opcode::Equals {
+                        let n;
+                        match left.item {
+                            Ast::IdentifierLiteral(str) => n = str.to_string(),
+                            _ => {
+                                self.successful = false;
+                        
+                                // Throw an error since the symbol requested isn't defined in this scope.
+                                let label = Label::primary((), left.range.clone())
+                                    .with_message("the '=' operator may only be used on variable names.");
+    
+                                let diagnostic = Diagnostic::error()
+                                    .with_code("FC0023")
+                                    .with_labels(vec![label])
+                                    .with_message("invalid set expression.");
+                                
+                                self.diagnostics.push(diagnostic);
+    
+                                return None;
+                            }
+                        }
+
+                        let r = match self.ast_expression(*right) {
+                            Some(item) => item,
+                            None => {
+                                if self.successful {
+                                    self.successful = false;
+                    
+                                    // Throw an error since the symbol requested isn't defined in this scope.
+                                    let label = Label::primary((), ast.range)
+                                        .with_message("invalid expression here.");
+    
+                                    let diagnostic = Diagnostic::error()
+                                        .with_code("FC0020")
+                                        .with_labels(vec![label])
+                                        .with_message("invalid expression.");
+                                    
+                                    self.diagnostics.push(diagnostic);
+                                }
+                                return None;
+                            }
+                        };
+                        
+                        let desired_type = match self.symbols.get(&n).unwrap() {
+                            VariableType::Declared(t) => *t,
+                            VariableType::Defined(t, ..) => *t,
+                        };
+
+                        if r.item.get_type(&self.symbols) != desired_type {
+                            self.successful = false;
+                            
+                            let dtype: &str = desired_type.into();
+                            let rtype: &str = r.item.get_type(&self.symbols).into();
+
+                            // Throw an error since the symbol requested isn't defined in this scope.
+                            let label = Label::primary((), ast.range)
+                                .with_message(format!("this variable is of type '{}'", dtype));
+
+                            let label2 = Label::primary((), r.range)
+                                .with_message(format!("new value is of type '{}'", rtype));
+    
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0025")
+                                .with_labels(vec![label, label2])
+                                .with_message("variable value doesn't match variable signature.");
+                                    
+                            self.diagnostics.push(diagnostic);
+                            return None;
+                        }
+
+                        self.symbols.insert(n.to_string(), VariableType::Defined(desired_type, 0, self.hir.len()));
+
+                        return Some(HirMeta::new(
+                            ast.range,
+                            self.filename,
+                            Hir::Set(
+                                HirMeta::boxed(
+                                    left.range,
+                                    self.filename,
+                                    Hir::Named(n),
+                                ),
+                                r.into_box()
+                            )
+                        ));
                     } else {
                         self.successful = false;
                     
@@ -269,12 +362,78 @@ impl<'a> FlycatcherFrontend<'a> {
     }
 
     /// Loops through the provided AST tree, calculating which symbols are declared.
-    //fn resolve_symbols(&mut self, ast: &Vec<AstMeta>) {
+    fn resolve_symbols(&mut self, ast: &Vec<AstMeta>) {
+        for item in ast {
+            match &item.item {
+                Ast::BinaryExpression(op, l, r) => {
+                    // The expression is a binary expression, meaning it may be a variable set
+                    // operation.
 
-    //}
+                    if *op != Opcode::Equals {
+                        continue;
+                    }
+
+                    let n;
+                    match &l.item {
+                        Ast::IdentifierLiteral(str) => n = str.to_string(),
+                        _ => {
+                            self.successful = false;
+                    
+                            // Throw an error since the symbol requested isn't defined in this scope.
+                            let label = Label::primary((), l.range.clone())
+                                .with_message("the '=' operator may only be used on variable names.");
+
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0023")
+                                .with_labels(vec![label])
+                                .with_message("invalid set expression.");
+                            
+                            self.diagnostics.push(diagnostic);
+
+                            break;
+                        }
+                    }
+
+                    if self.symbols.contains_key(&n) {
+                        continue;
+                    }
+
+                    if let Some(t) = self.ast_expression(*r.clone()) {
+                        let var_type = t.item.get_type(&self.symbols);
+                        self.symbols.insert(
+                            n,
+                            VariableType::Declared(var_type)
+                        );
+                    } else {
+                        if self.successful {
+                            self.successful = false;
+                    
+                            // Throw an error since the symbol requested isn't defined in this scope.
+                            let label = Label::primary((), r.range.clone())
+                                .with_message("this value is invalid.");
+
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0024")
+                                .with_labels(vec![label])
+                                .with_message("invalid value for variable.");
+                            
+                            self.diagnostics.push(diagnostic);
+
+                            break;
+                        }
+                    }
+                },
+                _ => continue
+            }
+        }
+    }
 
     /// Converts all of the items in the provided AST tree into a tree of Flycatcher HIR.
     pub fn convert(&mut self, ast: Vec<AstMeta>) {
+        self.resolve_symbols(&ast);
+
+        if !self.successful { return }
+
         for item in ast {
             if let Some(e) = self.ast_expression(item.clone()) {
                 self.hir.push(e);
