@@ -1,6 +1,7 @@
 use clap::{App, Arg};
 use flycatcherc::FlycatcherFrontend;
-use flycatcherc_clif::{CraneliftBackend, Triple};
+use flycatcherc_clif::{CraneliftBackend, Triple, target_lexicon::Environment};
+use flycatcherc_link::{link, LinkerOptions};
 use flycatcher_diagnostic::DiagnosticEmitter;
 use flycatcher_parser::{Parser};
 use std::fs::read_to_string;
@@ -37,12 +38,30 @@ fn main() {
                 if c.successful() {
                     // Compile into an object.
                     let path = std::path::Path::new(input).file_stem().unwrap().to_str().unwrap();
-                    
+
+                    let mut triple = Triple::host();
+
+                    triple.environment = Environment::Gnu;
+
                     let mut backend = CraneliftBackend::new(
-                        Triple::from_str("x86_64-pc-unknown-gnu-coff").unwrap(),
+                        triple,
                         path.to_string() + ".o"
                     );
-                    backend.compile(c);
+                    
+                    if backend.compile(c) {
+                        // Link object file since no error occurred.
+                        if link(
+                            vec![
+                                path.to_string() + ".o"
+                            ],
+                            LinkerOptions {
+                                output_path: Some(path.to_string() + std::env::consts::EXE_SUFFIX)
+                            }
+                        ) {
+                            // Clean up the extra files
+                            std::fs::remove_file(path.to_string() + ".o").unwrap();
+                        }
+                    }
                 }
             },
             Err(_) => {
