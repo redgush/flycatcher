@@ -66,6 +66,7 @@ dependencies = [
  "clap",
  "flycatcher-diagnostic",
  "flycatcher-parser",
+ "flycatcherc",
 ]
 
 [[package]]
@@ -88,6 +89,14 @@ version = "0.1.0"
 dependencies = [
  "codespan-reporting",
  "flycatcher-lexer",
+]
+
+[[package]]
+name = "flycatcherc"
+version = "0.1.0"
+dependencies = [
+ "flycatcher-diagnostic",
+ "flycatcher-parser",
 ]
 
 [[package]]

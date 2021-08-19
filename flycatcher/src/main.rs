@@ -1,4 +1,5 @@
 use clap::{App, Arg};
+use flycatcherc::FlycatcherFrontend;
 use flycatcher_diagnostic::DiagnosticEmitter;
 use flycatcher_parser::{Parser};
 use std::fs::read_to_string;
@@ -20,7 +21,14 @@ fn main() {
         let mut p = Parser::new(input, &i);
         match p.parse() {
             Ok(ast) => {
-                dbg!(ast);
+                //dbg!(ast);
+                let mut c = FlycatcherFrontend::new(input, &i);
+                c.convert(ast);
+
+                dbg!(c.hir);
+
+                let emitter = DiagnosticEmitter::new(input, &i);
+                emitter.emit(c.diagnostics);
             },
             Err(_) => {}
         }
