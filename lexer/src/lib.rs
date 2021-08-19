@@ -17,6 +17,11 @@ pub use logos::{Lexer, Logos};
 #[derive(Clone, Copy, Debug, Logos, PartialEq)]
 pub enum Token {
 
+    /// The Flycatcher `declare` keyword, used for defining external functions that may be
+    /// linked with a compiled executable.
+    #[token("declare")]
+    DeclareKeyword,
+
     /// The equal comparison operator.
     /// 
     /// ```
