@@ -28,12 +28,14 @@ fn main() {
                 dbg!(c.hir);
 
                 let emitter = DiagnosticEmitter::new(input, &i);
+                emitter.emit(p.diagnostics);
+                let emitter = DiagnosticEmitter::new(input, &i);
                 emitter.emit(c.diagnostics);
             },
-            Err(_) => {}
+            Err(_) => {
+                let emitter = DiagnosticEmitter::new(input, &i);
+                emitter.emit(p.diagnostics);
+            }
         }
-
-        let emitter = DiagnosticEmitter::new(input, &i);
-        emitter.emit(p.diagnostics);
     }
 }
