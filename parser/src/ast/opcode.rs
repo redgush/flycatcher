@@ -9,6 +9,9 @@ pub enum Opcode {
     /// The == operator.
     EqualsEquals,
 
+    /// The = operator.
+    Equals,
+
     /// The > operator.
     Greater,
 
@@ -40,6 +43,7 @@ impl Opcode {
     /// Returns the precidence of this operator.
     pub fn precedence(&self) -> usize {
         match self {
+            Opcode::Equals => 0,
             Opcode::EqualsEquals => 1,
             Opcode::Greater => 1,
             Opcode::GreaterEquals => 1,
@@ -57,6 +61,7 @@ impl Opcode {
 /// Returns whether or not the specified token is an operator that has an Opcode.
 pub fn is_operator(tok: Token) -> bool {
     match tok {
+        Token::Equals |
         Token::EqualsEquals |
         Token::GreaterThan |
         Token::GreaterThanOrEqual |
@@ -74,6 +79,7 @@ pub fn is_operator(tok: Token) -> bool {
 /// Converts a token to an operator.
 pub fn get_operator(tok: Token) -> Option<Opcode> {
     Some(match tok {
+        Token::Equals => Opcode::Equals,
         Token::EqualsEquals => Opcode::EqualsEquals,
         Token::GreaterThan => Opcode::Greater,
         Token::LessThan => Opcode::Less,
