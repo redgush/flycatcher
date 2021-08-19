@@ -1,8 +1,13 @@
 [package]
 name = "flycatcherc-clif"
-version = "0.1.0"
+description = "A Cranelift backend for Flycatcher's compiler."
+version = "0.1.1"
 authors = ["Zack <trimorphyt@gmail.com>"]
+license = "MIT"
+homepage = "https://github.com/redgush/rsflycatcher"
+repository = "https://github.com/redgush/rsflycatcher"
 edition = "2018"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -12,5 +17,5 @@ cranelift-codegen = "0.76.0"
 cranelift-frontend = "0.76.0"
 cranelift-module = "0.76.0"
 cranelift-object = "0.76.0"
-flycatcherc = { path = "../compiler", version = "0.1.0" }
+flycatcherc = { path = "../compiler", version = "0.1.1" }
 target-lexicon = "0.12"
