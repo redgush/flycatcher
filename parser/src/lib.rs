@@ -733,6 +733,41 @@ impl<'a> Parser<'a> {
                         return Err(e);
                     }
                 }
+            } else if tok == Token::Colon {
+                // Parse type declaration:
+                self.lexer.next();
+                match self.parse_secondary() {
+                    Ok(ast) => {
+                        let start = left.range.start;
+                        let type_dec = Ast::TypeDeclaration(
+                            left.as_box(),
+                            ast.as_box()
+                        );
+                        return self.parse_opt_ending(AstMeta::new(
+                            start..self.lexer.span().end,
+                            type_dec
+                        ))
+                    },
+                    Err(e) => {
+                        if e == ErrorKind::EndOfFile {
+                            let start = left.range.start;
+                            let label = Label::primary((), start..self.lexer.span().end)
+                                .with_message(format!("expected a type declaration."));
+                            
+                            let help = Label::secondary((), self.lexer.span())
+                                .with_message("try inserting a type here.");
+                                        
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0026")
+                                .with_labels(vec![label, help])
+                                .with_message(format!("no type declaration after ':'."));
+                                        
+                            self.diagnostics.push(diagnostic);
+                    
+                            return Err(ErrorKind::SyntaxError);
+                        }
+                    }
+                }
             }
         }
 
@@ -883,6 +918,106 @@ impl<'a> Parser<'a> {
                             )
                         )
                     )
+                }
+            } else if tok == Token::DeclareKeyword {
+                // Parse function declaration.
+                self.lexer.next();
+                let start = self.lexer.span().start;
+
+                if let Some(name_tok) = self.lexer.next() {
+                    let n;
+
+                    if name_tok == Token::Identifier {
+                        n = AstMeta::new(
+                            self.lexer.span(),
+                            Ast::IdentifierLiteral(self.lexer.slice().to_string())
+                        )
+                    } else {
+                        let label = Label::primary((), start..self.lexer.span().end)
+                            .with_message(format!("invalid name for this declaration."));
+                                                
+                        let diagnostic = Diagnostic::error()
+                            .with_code("FC0028")
+                            .with_labels(vec![label])
+                            .with_message(format!("invalid declaration name."));
+                                                
+                        self.diagnostics.push(diagnostic);
+                            
+                        return Err(ErrorKind::SyntaxError);
+                    }
+
+                    if let Some(oparen) = self.lexer.next() {
+                        if oparen != Token::OParen {
+                            let label = Label::primary((), start..self.lexer.span().end)
+                                .with_message(format!("expected an opening parenthesis ('(') here"));
+                                                    
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0029")
+                                .with_labels(vec![label])
+                                .with_message(format!("expected an argument list in function declaration"));
+                                                    
+                            self.diagnostics.push(diagnostic);
+                                
+                            return Err(ErrorKind::SyntaxError);
+                        }
+                    }
+
+                    // Parse arguments
+                    match self.parse_list(Token::CParen) {
+                        Ok(args) => {
+                            let mut type_dec = None;
+                            if let Some(type_dec_start) = self.lexer.clone().next() {
+                                if type_dec_start == Token::Colon {
+                                    self.lexer.next();
+
+                                    match self.parse_expression() {
+                                        Ok(ast) => {
+                                            type_dec = Some(ast.as_box());
+                                        },
+                                        Err(e) => {
+                                            if e == ErrorKind::EndOfFile {
+                                                let label = Label::primary((), self.lexer.span())
+                                                    .with_message(format!("expected type declaration here."));
+                                                                        
+                                                let diagnostic = Diagnostic::error()
+                                                    .with_code("FC0030")
+                                                    .with_labels(vec![label])
+                                                    .with_message(format!("invalid type declaration."));
+                                                                        
+                                                self.diagnostics.push(diagnostic);
+                                                    
+                                                return Err(ErrorKind::SyntaxError);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            return Ok(
+                                AstMeta::new(
+                                    start..self.lexer.span().end,
+                                    Ast::DeclareFunction(
+                                        n.as_box(),
+                                        args,
+                                        type_dec
+                                    )
+                                )
+                            )
+                        },
+                        Err(e) => return Err(e)
+                    }
+                } else {
+                    let label = Label::primary((), start..self.lexer.span().end)
+                        .with_message(format!("expected a name for this declaration."));
+                                            
+                    let diagnostic = Diagnostic::error()
+                        .with_code("FC0027")
+                        .with_labels(vec![label])
+                        .with_message(format!("expected declaration name."));
+                                            
+                    self.diagnostics.push(diagnostic);
+                        
+                    return Err(ErrorKind::SyntaxError);
                 }
             } else {
                 match self.parse_secondary() {

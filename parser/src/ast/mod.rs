@@ -63,4 +63,10 @@ pub enum Ast {
     /// A preprocessor statement with a given name and arguments.
     PreprocessorStatement(Box<AstMeta>, Vec<AstMeta>),
 
+    /// An external function that may be linked after the object is compiled.
+    DeclareFunction(Box<AstMeta>, Vec<AstMeta>, Option<Box<AstMeta>>),
+
+    /// A type declaration, such as `my_num: usize`.
+    TypeDeclaration(Box<AstMeta>, Box<AstMeta>),
+
 }
