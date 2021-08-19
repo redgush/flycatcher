@@ -136,7 +136,12 @@ impl<'a> FlycatcherFrontend<'a> {
                 }
 
                 None
-            }
+            },
+            Ast::StringLiteral(s) => Some(HirMeta::new(
+                ast.range,
+                self.filename,
+                Hir::NullString(s)
+            )),
             // If no match was found, it wasn't an error, this function can be used to check if
             // an AST item is a literal.
             _ => None,

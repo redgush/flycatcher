@@ -45,6 +45,9 @@ pub enum FlycatcherType {
     /// A 64-bit floating point number.
     Float64,
 
+    /// A null-terminated ASCII string.
+    NullString,
+
 }
 
 impl<'a> Into<&'a str> for FlycatcherType {
@@ -64,6 +67,7 @@ impl<'a> Into<&'a str> for FlycatcherType {
             FlycatcherType::Size => "size",
             FlycatcherType::Float32 => "float32",
             FlycatcherType::Float64 => "float64",
+            FlycatcherType::NullString => "string",
         }
     }
 

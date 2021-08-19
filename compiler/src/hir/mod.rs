@@ -24,6 +24,9 @@ pub enum Hir<'a> {
     /// A 64-bit floating point number.
     Float(f64),
 
+    /// A null terminated string constant.
+    NullString(String),
+
     /// A reference to a named variable value.
     Named(String),
 
@@ -70,6 +73,7 @@ impl<'a> Hir<'a> {
             Hir::Subtract(l, r) => l.item.get_type(symbols),
             Hir::Multiply(l, r) => l.item.get_type(symbols),
             Hir::Divide(l, r) => l.item.get_type(symbols),
+            Hir::NullString(n) => FlycatcherType::NullString,
             _ => panic!("This HIR object has no type.")
         }
     }
