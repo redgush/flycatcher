@@ -456,4 +456,9 @@ impl<'a> FlycatcherFrontend<'a> {
         }
     }
 
+    /// Returns whether or not the compilation process was a success.
+    pub fn successful(&self) -> bool {
+        self.successful
+    }
+
 }
