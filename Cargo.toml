@@ -1,6 +1,8 @@
 [workspace]
 members = [
     "compiler",
+    "compiler-clif",
+    "compiler-link",
     "diagnostic",
     "flycatcher",           
     "lexer",

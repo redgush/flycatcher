@@ -2,3 +2,4 @@ Cargo.lock
 /target
 /test.fly
 /flycatcher.bat
+*.exe
