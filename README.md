@@ -58,6 +58,7 @@ The self compiling compiler will compile to machine code rather than transpiling
 ## Roadmap
 | Codebase | Crate | Description |
 | - | - | - |
+| `compiler` | `flycatcherc` | The front end of the Flycatcher compiler. |
 | `diagnostic` | `flycatcher-diagnostic` | A crate for dislaying diagnostic messages that are similar to Rustc's diagnostics to the console. |
 | `flycatcher` | `flycatcher` | The command line tool for utilizing Flycatcher source. |
 | `lexer` | `flycatcher-lexer` | A lexical analyzer that can take an input string and iterate through it, providing the different tokens that were found in the input string. |
