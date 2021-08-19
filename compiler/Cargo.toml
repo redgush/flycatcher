@@ -1,11 +1,15 @@
 [package]
 name = "flycatcherc"
-version = "0.1.0"
+description = "The front-end of the Flycatcher compiler."
+version = "0.1.1"
 authors = ["Zack <trimorphyt@gmail.com>"]
+license = "MIT"
+homepage = "https://github.com/redgush/rsflycatcher"
+repository = "https://github.com/redgush/rsflycatcher"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-flycatcher-diagnostic = { path = "../diagnostic", version = "0.1.0" }
-flycatcher-parser = { path = "../parser", version = "0.1.0" }
+flycatcher-diagnostic = { path = "../diagnostic", version = "0.1.1" }
+flycatcher-parser = { path = "../parser", version = "0.1.1" }
