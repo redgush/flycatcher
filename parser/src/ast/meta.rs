@@ -13,6 +13,9 @@ pub struct AstMeta {
     /// The item that this metadata structure describes.
     pub item: Ast,
 
+    /// Whether or not the AST item has a semicolon after it.
+    pub has_semi: bool,
+
 }
 
 impl AstMeta {
@@ -21,7 +24,8 @@ impl AstMeta {
     pub fn new(range: Range<usize>, item: Ast) -> Self {
         Self {
             range,
-            item
+            item,
+            has_semi: false,
         }
     }
 
