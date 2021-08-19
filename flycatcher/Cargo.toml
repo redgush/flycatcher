@@ -13,5 +13,6 @@ edition = "2018"
 [dependencies]
 clap = "2.33.3"
 flycatcherc = { path = "../compiler" }
+flycatcherc-clif = { path = "../compiler-clif" }
 flycatcher-diagnostic = { path = "../diagnostic", version = "0.1.0" }
 flycatcher-parser = { path = "../parser", version = "0.1.0" }
