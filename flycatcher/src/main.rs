@@ -15,12 +15,14 @@ fn main() {
         .get_matches();
     
     if let Some(input) = matches.value_of("input") {
-        //println!("input file: {}", input)
         let i = read_to_string(input).unwrap();
 
         let mut p = Parser::new(input, &i);
-        while let Ok(ast) = p.parse_expression() {
-            dbg!(ast);
+        match p.parse() {
+            Ok(ast) => {
+                dbg!(ast);
+            },
+            Err(_) => {}
         }
 
         let emitter = DiagnosticEmitter::new(input, &i);

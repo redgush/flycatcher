@@ -929,12 +929,12 @@ impl<'a> Parser<'a> {
                                 continue;
                             } else {
                                 let label = Label::primary((), self.lexer.span())
-                                    .with_message(format!("you should add a semicolon here."));
+                                    .with_message(format!("you should add a semicolon after this."));
                                                 
                                 let diagnostic = Diagnostic::warning()
                                     .with_code("FC0015")
                                     .with_labels(vec![label])
-                                    .with_message(format!("add expression to the end of this statement."))
+                                    .with_message(format!("add semicolon to the end of this statement."))
                                     .with_notes(vec!["expressions without semicolons can lead to\nunexpected behavior.".into()]);
                                 self.diagnostics.push(diagnostic);
                             }
