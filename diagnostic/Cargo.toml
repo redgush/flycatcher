@@ -1,7 +1,7 @@
 [package]
 name = "flycatcher-diagnostic"
 description = "Tools for emitting Rustc style error messages."
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Zack <trimorphyt@gmail.com>"]
 license = "MIT"
 homepage = "https://github.com/redgush/rsflycatcher"
