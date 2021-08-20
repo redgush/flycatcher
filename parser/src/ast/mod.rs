@@ -69,4 +69,19 @@ pub enum Ast {
     /// A type declaration, such as `my_num: usize`.
     TypeDeclaration(Box<AstMeta>, Box<AstMeta>),
 
+    /// A function construct definition.  The first item is the name of the construct used, the
+    /// second is the name of the function declared, the 3rd is the list of declared functions,
+    /// the 4th is the optional return value declared, and the 5th is the source AST of the
+    /// function.
+    FunctionConstruct(Box<AstMeta>, Box<AstMeta>, Vec<AstMeta>, Option<Box<AstMeta>>, Vec<AstMeta>),
+
+    /// This is a class construct definition.  The first item is the name of the used
+    /// construct, the second is the name of the class, the third is the code block that the
+    /// class was defined with.
+    ClassConstruct(Box<AstMeta>, Box<AstMeta>, Vec<AstMeta>),
+
+    /// A variable construct definition.  The first item is the construct used, the second is
+    /// the name of the variable being defined, the third is the value of the variable.
+    VariableConstruct(Box<AstMeta>, Box<AstMeta>, Box<AstMeta>),
+
 }

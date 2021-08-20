@@ -988,6 +988,7 @@ impl<'a> Parser<'a> {
                                                     
                                                 return Err(ErrorKind::SyntaxError);
                                             }
+                                            return Err(e);
                                         }
                                     }
                                 }
@@ -1019,6 +1020,194 @@ impl<'a> Parser<'a> {
                         
                     return Err(ErrorKind::SyntaxError);
                 }
+            } else if tok == Token::ConstructIdentifier {
+                // Parse function or class construct.
+                self.lexer.next();
+                let start = self.lexer.span().start;
+
+                let c_name = AstMeta::new(
+                    self.lexer.span(),
+                    Ast::IdentifierLiteral(self.lexer.slice()[1..].into())
+                );
+
+                if let Some(name_tok) = self.lexer.next() {
+                    let n;
+
+                    if name_tok == Token::Identifier {
+                        n = AstMeta::new(
+                            self.lexer.span(),
+                            Ast::IdentifierLiteral(self.lexer.slice().to_string())
+                        )
+                    } else {
+                        let label = Label::primary((), start..self.lexer.span().end)
+                            .with_message(format!("invalid name for this construct."));
+                                                
+                        let diagnostic = Diagnostic::error()
+                            .with_code("FC0031")
+                            .with_labels(vec![label])
+                            .with_message(format!("invalid construct name."));
+                                                
+                        self.diagnostics.push(diagnostic);
+                            
+                        return Err(ErrorKind::SyntaxError);
+                    }
+
+                    if let Some(definition_start) = self.lexer.next() {
+                        if definition_start == Token::OParen {
+                            // It is a function construct definition.
+                            match self.parse_list(Token::CParen) {
+                                Ok(args) => {
+                                    let mut type_dec = None;
+                                    if let Some(type_dec_start) = self.lexer.clone().next() {
+                                        if type_dec_start == Token::Colon {
+                                            self.lexer.next();
+        
+                                            match self.parse_expression() {
+                                                Ok(ast) => {
+                                                    type_dec = Some(ast.as_box());
+                                                },
+                                                Err(e) => {
+                                                    if e == ErrorKind::EndOfFile {
+                                                        let label = Label::primary((), self.lexer.span())
+                                                            .with_message(format!("expected type declaration here."));
+                                                                                
+                                                        let diagnostic = Diagnostic::error()
+                                                            .with_code("FC0030")
+                                                            .with_labels(vec![label])
+                                                            .with_message(format!("invalid type declaration."));
+                                                                                
+                                                        self.diagnostics.push(diagnostic);
+                                                            
+                                                        return Err(ErrorKind::SyntaxError);
+                                                    }
+
+                                                    return Err(e);
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if let Some(tok) = self.lexer.next() {
+                                        if tok != Token::OCurly {
+                                            let label = Label::primary((), self.lexer.span())
+                                                .with_message(format!("expected opening curly bracket here."));
+                                                                                
+                                            let diagnostic = Diagnostic::error()
+                                                .with_code("FC0033")
+                                                .with_labels(vec![label])
+                                                .with_message(format!("expected code block for function definition."));
+                                                                                
+                                            self.diagnostics.push(diagnostic);
+                                                            
+                                            return Err(ErrorKind::SyntaxError);
+                                        }
+                                    }
+
+                                    let block;
+                                    match self.parse_block() {
+                                        Ok(b) => {
+                                            block = b;
+                                        },
+                                        Err(e) => return Err(e)
+                                    }
+        
+                                    return Ok(
+                                        AstMeta::new(
+                                            start..self.lexer.span().end,
+                                            Ast::FunctionConstruct(
+                                                c_name.as_box(),
+                                                n.as_box(),
+                                                args,
+                                                type_dec,
+                                                block
+                                            )
+                                        )
+                                    )
+                                },
+                                Err(e) => return Err(e)
+                            }
+                        } else if definition_start == Token::OCurly {
+                            // It is a class construct definition
+                            let block;
+                            match self.parse_block() {
+                                Ok(b) => {
+                                    block = b;
+                                },
+                                Err(e) => return Err(e)
+                            }
+
+                            return Ok(
+                                AstMeta::new(
+                                    start..self.lexer.span().end,
+                                    Ast::ClassConstruct(
+                                        c_name.as_box(),
+                                        n.as_box(),
+                                        block
+                                    )
+                                )
+                            )
+                        } else if definition_start == Token::Equals {
+                            // It's a variable construct definition
+                            let v = match self.parse_expression() {
+                                Ok(b) => b,
+                                Err(e) => {
+                                    if e == ErrorKind::EndOfFile {
+                                        // It's an invalid constructor
+                                        let label = Label::primary((), start..self.lexer.span().end)
+                                            .with_message(format!("no value for variable construct."));
+                                                                
+                                        let diagnostic = Diagnostic::error()
+                                            .with_code("FC0034")
+                                            .with_labels(vec![label])
+                                            .with_message(format!("invalid construct value."));
+                                                                
+                                        self.diagnostics.push(diagnostic);
+                                            
+                                        return Err(ErrorKind::SyntaxError);
+                                    }
+
+                                    return Err(e)
+                                }
+                            };
+
+                            return Ok(
+                                AstMeta::new(
+                                    start..self.lexer.span().end,
+                                    Ast::VariableConstruct(
+                                        c_name.as_box(),
+                                        n.as_box(),
+                                        v.as_box()
+                                    )
+                                )
+                            )
+                        } else {
+                            // It's an invalid constructor
+                            let label = Label::primary((), start..self.lexer.span().end)
+                                .with_message(format!("invalid construct value here."));
+                                                    
+                            let diagnostic = Diagnostic::error()
+                                .with_code("FC0032")
+                                .with_labels(vec![label])
+                                .with_message(format!("invalid construct value."));
+                                                    
+                            self.diagnostics.push(diagnostic);
+                                
+                            return Err(ErrorKind::SyntaxError);
+                        }
+                    }
+                } else {
+                    let label = Label::primary((), start..self.lexer.span().end)
+                        .with_message(format!("expected a name for this declaration."));
+                                            
+                    let diagnostic = Diagnostic::error()
+                        .with_code("FC0027")
+                        .with_labels(vec![label])
+                        .with_message(format!("expected declaration name."));
+                                            
+                    self.diagnostics.push(diagnostic);
+                        
+                    return Err(ErrorKind::SyntaxError);
+                }
             } else {
                 match self.parse_secondary() {
                     Ok(ast) => return self.parse_opt_ending(ast),
@@ -1028,6 +1217,61 @@ impl<'a> Parser<'a> {
         }
 
         Err(ErrorKind::EndOfFile)
+    }
+
+    fn parse_block(&mut self) -> Result<Vec<AstMeta>, ErrorKind> {
+        let mut ast = vec![];
+        loop {
+            // Ignore semicolons by peeking into the lexer's tokens, if there is in fact a
+            // semicolon, it should be skipped over.
+
+            if let Some(tok) = self.lexer.clone().next() {
+                if tok == Token::Semicolon {
+                    // Skip over the semicolon and continue the loop.
+                    self.lexer.next();
+                    continue;
+                } else if tok == Token::CCurly {
+                    self.lexer.next();
+                    // End the loop, the closing bracket was found.
+                    break;
+                }
+
+                match self.parse_expression() {
+                    Ok(item) => {
+                        ast.push(item);
+
+                        if let Some(tok) = self.lexer.clone().next() {
+                            if tok == Token::Semicolon {
+                                // Skip over the semicolon and continue the loop.
+                                self.lexer.next();
+                                continue;
+                            } else {
+                                let label = Label::primary((), self.lexer.span())
+                                    .with_message(format!("you should add a semicolon after this."));
+                                                
+                                let diagnostic = Diagnostic::warning()
+                                    .with_code("FC0015")
+                                    .with_labels(vec![label])
+                                    .with_message(format!("add semicolon to the end of this statement."))
+                                    .with_notes(vec!["expressions without semicolons can lead to\nunexpected behavior.".into()]);
+                                self.diagnostics.push(diagnostic);
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        if e == ErrorKind::EndOfFile {
+                            break;
+                        }
+
+                        return Err(e)
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+
+        Ok(ast)
     }
 
     /// Parses a single expression from the lexer, returning a single AST object that represents
