@@ -179,6 +179,36 @@ pub enum Token {
     #[token("]")]
     CBrack,
 
+    /// An opening curly bracket character (`{`).
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("{}");
+    /// assert_eq!(lexer.next(), Some(Token::OCurly));
+    /// assert_eq!(lexer.slice(), "{");
+    /// assert_eq!(lexer.next(), Some(Token::CCurly));
+    /// assert_eq!(lexer.slice(), "}");
+    /// ```
+    #[token("{")]
+    OCurly,
+
+    /// A closing curly bracket character (`[`).
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("{}");
+    /// assert_eq!(lexer.next(), Some(Token::OCurly));
+    /// assert_eq!(lexer.slice(), "{");
+    /// assert_eq!(lexer.next(), Some(Token::CCurly));
+    /// assert_eq!(lexer.slice(), "}");
+    /// ```
+    #[token("}")]
+    CCurly,
+
     /// An opening parenthesis character (`(`).
     /// 
     /// ```
