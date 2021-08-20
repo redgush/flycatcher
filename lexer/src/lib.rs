@@ -387,6 +387,10 @@ pub enum Token {
     #[token(":")]
     Colon,
 
+    /// C-like comments.
+    #[regex("//(.*)", logos::skip)]
+    Comment,
+
     /// A number literal that supports integers and floating point numbers, with an optional
     /// mantissa (exponent).
     /// 
