@@ -437,6 +437,19 @@ pub enum Token {
     /// ```
     #[regex(r"#[a-zA-Z_$][a-zA-Z_$0-9]*")]
     PreprocessorIdentifier,
+    
+    /// A construct identifier.
+    /// 
+    /// ```
+    /// use flycatcher_lexer::Logos;
+    /// use flycatcher_lexer::Token;
+    /// 
+    /// let mut lexer = Token::lexer("@my_construct");
+    /// assert_eq!(lexer.next(), Some(Token::ConstructIdentifier));
+    /// assert_eq!(lexer.slice(), "@my_construct");
+    /// ```
+    #[regex(r"@[a-zA-Z_$][a-zA-Z_$0-9]*")]
+    ConstructIdentifier,
 
     /// A Flycatcher style identifier literal.  An identifier must start with one of
     /// `a-z`/`A-Z`, `_` or `$`.  Any character after that must be one of `a-z`/`A-Z`, `_`, `$`
