@@ -1,4 +1,6 @@
 [workspace]
 members = [
-    "lexer"
+    "ast",
+    "lexer",
+    "parser",
 ]

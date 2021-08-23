@@ -9,10 +9,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bed554bd50246729a1ec158d08aa3235d1b69d94ad120ebe187e28894787e736"
 
 [[package]]
+name = "flycatcher-ast"
+version = "0.2.0"
+
+[[package]]
 name = "flycatcher-lexer"
 version = "0.2.0"
 dependencies = [
  "logos",
+]
+
+[[package]]
+name = "flycatcher-parser"
+version = "0.2.0"
+dependencies = [
+ "flycatcher-ast",
 ]
 
 [[package]]

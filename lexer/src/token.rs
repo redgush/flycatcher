@@ -1,10 +1,9 @@
-use logos::{Logos};
+use logos::Logos;
 
 /// A list of tokens that Flycatcher's lexer may use.  This is powered by Logos and its derive macro,
 /// making this the lexer itself, not just a mere list of tokens.
 #[derive(Clone, Debug, Logos, PartialEq)]
 pub enum Token {
-
     /// A left curly bracket.  `{`.
     #[token("{")]
     LCurly,
@@ -139,7 +138,7 @@ pub enum Token {
 
     /// A number literal in Flycatcher may be a floating point number, or it may be an integer.  This
     /// token also matches an optional exponent/mantissa, like so:
-    /// 
+    ///
     /// ```flycatcher
     /// 42
     /// 4.2
@@ -153,7 +152,7 @@ pub enum Token {
     /// Flycatcher's string literals are much inspired by ECMAScript's string literals.  In Flycatcher,
     /// there are no "character literals," unlike C, C++, Rust, Java, etc.  A string may start with
     /// either `"` or `'`.
-    /// 
+    ///
     /// The string, at the lexing phase, *supports* escaped quotes, but they aren't converted to their
     /// correct characters yet.  This is done during parsing.  For example, `"\"Hello, world!\""` is the
     /// same as `"\\\"Hello, world!\\\""` in a Rust string.
@@ -169,7 +168,7 @@ pub enum Token {
     /// An identifier is used as names and can be formatted like normal human words, such as `hello`.
     /// Identifiers may start with any alphabetical character, and underscore or a dollar sign, and any
     /// characters continuing an identifier may contain a numerical digit.
-    /// 
+    ///
     /// ```flycatcher
     /// my_identifier // Valid identifier
     /// _my_identifier // Valid identifier
@@ -209,11 +208,9 @@ pub enum Token {
     /// to throw an error if this token was found.
     #[error]
     Invalid,
-
 }
 
 impl Token {
-
     /// Displays a constant token as a string.  For example, if this token is a `TrueKeyword`, this
     /// function will return `true`.  This function will return `None` if this token is not a constant
     /// token, such as a string or number.
@@ -247,5 +244,4 @@ impl Token {
             _ => None,
         }
     }
-
 }
