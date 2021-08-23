@@ -198,9 +198,13 @@ pub enum Token {
     #[regex("#[a-zA-Z_$][a-zA-Z_$0-9]*")]
     PreprocessorIdentifier,
 
-    /// A Flycatcher comment, which is mostly ignored by the parser.  It may be used in metadata to
-    /// describe an object, if applicable.
-    #[regex("//.*")]
+    /// Flycatcher document comments are similar to Rust's, they use three slashes (`///`) at the start
+    /// and they end at the end of the line.
+    #[regex("///.*")]
+    DocComment,
+
+    /// A Flycatcher comment, which is ignored by the lexer.
+    #[regex("//.*", logos::skip)]
     Comment,
 
     /// A line break character that matches `\n` and `\r`.
