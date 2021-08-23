@@ -6,7 +6,7 @@
 //! Of course, the lexer is one of the simplest parts of Flycatcher's implementation, especially thanks
 //! to the `logos` lexer generator library!
 
-pub mod token;
+mod token;
 
 use logos::{Lexer as LogosLexer, Logos};
 use std::ops::Range;
