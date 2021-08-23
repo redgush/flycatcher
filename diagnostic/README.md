@@ -1,2 +1,0 @@
-# flycatcher-diagnostic
-This crate utilizes the `codespan-reporting` crate to make Rustc style error messages for the Flycatcher programming language.  Its only dependency is `codespan-reporting`, so it is possible to use outside of Flycatcher.
