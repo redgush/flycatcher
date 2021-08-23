@@ -1,520 +1,67 @@
-//! An efficient lexer for Flycatcher source powered by Logos.
+//! Flycatcher's lexer crate.
+//! 
+//! This crate takes an input string and converts it into more machine-understandable tokens, such as
+//! identifiers, strings, numbers, etc.
+//! 
+//! Of course, the lexer is one of the simplest parts of Flycatcher's implementation, especially thanks
+//! to the `logos` lexer generator library!
 
-pub use logos::{Lexer, Logos};
+pub mod token;
 
-/// A list of tokens that may be matched by the lexer.  Because of the wonderful Logos crate,
-/// this enum also acts as a lexer, for example:
-/// 
-/// ```
-/// // The `Logos` trait is required to use the lexer.
-/// use flycatcher_lexer::Logos;
-/// use flycatcher_lexer::Token;
-/// 
-/// let mut lexer = Token::lexer("'Hello, world!'");
-/// assert_eq!(lexer.next(), Some(Token::String));
-/// assert_eq!(lexer.slice(), "'Hello, world!'");
-/// ```
-#[derive(Clone, Copy, Debug, Logos, PartialEq)]
-pub enum Token {
+use logos::{Lexer as LogosLexer, Logos};
+use std::ops::Range;
+pub use token::Token;
 
-    /// The Flycatcher `declare` keyword, used for defining external functions that may be
-    /// linked with a compiled executable.
-    #[token("declare")]
-    DeclareKeyword,
+/// A wrapper around the logos lexer, allowing for ease of peeking and the ability to catch errors while
+/// lexing.
+pub struct Lexer<'a> {
 
-    /// The equal comparison operator.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("21 == 21");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// assert_eq!(lexer.next(), Some(Token::EqualsEquals));
-    /// assert_eq!(lexer.slice(), "==");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// ```
-    #[token("==")]
-    EqualsEquals,
+    /// This is the string that is being tokenized.  Not only is this used to find tokens, but it is
+    /// also used in diagnostic messages to display what went wrong & where.
+    pub input: &'a str,
 
-    /// The equal comparison operator.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("21 != 21");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// assert_eq!(lexer.next(), Some(Token::ExclaimationEquals));
-    /// assert_eq!(lexer.slice(), "!=");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// ```
-    #[token("!=")]
-    ExclaimationEquals,
+    /// The Logos lexer that this struct wraps.  This will be used for recieving tokens and verifying
+    /// them.
+    lexer: LogosLexer<'a, Token>,
 
-    /// The greater than or equal comparison operator.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("21 >= 21");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// assert_eq!(lexer.next(), Some(Token::GreaterThanOrEqual));
-    /// assert_eq!(lexer.slice(), ">");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// ```
-    #[token(">=")]
-    GreaterThanOrEqual,
+}
 
-    /// The less than or equal comparison operator.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("21 <= 21");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// assert_eq!(lexer.next(), Some(Token::GreaterThanOrEqual));
-    /// assert_eq!(lexer.slice(), "<=");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// ```
-    #[token("<=")]
-    LessThanOrEqual,
+impl<'a> Lexer<'a> {
 
-    /// The greater than comparison operator.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("21 > 21");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// assert_eq!(lexer.next(), Some(Token::GreaterThan));
-    /// assert_eq!(lexer.slice(), ">");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// ```
-    #[token(">")]
-    GreaterThan,
-
-    /// The less than comparison operator.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("21 < 21");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// assert_eq!(lexer.next(), Some(Token::LessThan));
-    /// assert_eq!(lexer.slice(), "<");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// ```
-    #[token("<")]
-    LessThan,
-
-    /// A period, used for indexing objects.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("item1.item2");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "item1");
-    /// assert_eq!(lexer.next(), Some(Token::Dot));
-    /// assert_eq!(lexer.slice(), ".");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "item2");
-    /// ```
-    #[token(".")]
-    Dot,
-
-    /// An opening bracket character (`[`).
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("item1[item2]");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "item1");
-    /// assert_eq!(lexer.next(), Some(Token::OBrack));
-    /// assert_eq!(lexer.slice(), "[");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "item2");
-    /// assert_eq!(lexer.next(), Some(Token::CBrack));
-    /// assert_eq!(lexer.slice(), "]");
-    /// ```
-    #[token("[")]
-    OBrack,
-
-    /// A closing bracket character (`[`).
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("item1[item2]");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "item1");
-    /// assert_eq!(lexer.next(), Some(Token::OBrack));
-    /// assert_eq!(lexer.slice(), "[");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "item2");
-    /// assert_eq!(lexer.next(), Some(Token::CBrack));
-    /// assert_eq!(lexer.slice(), "]");
-    /// ```
-    #[token("]")]
-    CBrack,
-
-    /// An opening curly bracket character (`{`).
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("{}");
-    /// assert_eq!(lexer.next(), Some(Token::OCurly));
-    /// assert_eq!(lexer.slice(), "{");
-    /// assert_eq!(lexer.next(), Some(Token::CCurly));
-    /// assert_eq!(lexer.slice(), "}");
-    /// ```
-    #[token("{")]
-    OCurly,
-
-    /// A closing curly bracket character (`[`).
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("{}");
-    /// assert_eq!(lexer.next(), Some(Token::OCurly));
-    /// assert_eq!(lexer.slice(), "{");
-    /// assert_eq!(lexer.next(), Some(Token::CCurly));
-    /// assert_eq!(lexer.slice(), "}");
-    /// ```
-    #[token("}")]
-    CCurly,
-
-    /// An opening parenthesis character (`(`).
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("func(1)");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "func");
-    /// assert_eq!(lexer.next(), Some(Token::OParen));
-    /// assert_eq!(lexer.slice(), "(");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "1");
-    /// assert_eq!(lexer.next(), Some(Token::CParen));
-    /// assert_eq!(lexer.slice(), ")");
-    /// ```
-    #[token("(")]
-    OParen,
-
-    /// An opening parenthesis character (`)`).
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("func(1)");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "func");
-    /// assert_eq!(lexer.next(), Some(Token::OParen));
-    /// assert_eq!(lexer.slice(), "(");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "1");
-    /// assert_eq!(lexer.next(), Some(Token::CParen));
-    /// assert_eq!(lexer.slice(), ")");
-    /// ```
-    #[token(")")]
-    CParen,
-
-    /// The exclaimation mark operator.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("!1");
-    /// assert_eq!(lexer.next(), Some(Token::Exclaimation));
-    /// assert_eq!(lexer.slice(), "!");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "1");
-    /// ```
-    #[token("!")]
-    Exclaimation,
-
-    /// The plus (`+`) operator.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("21 + 21");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// assert_eq!(lexer.next(), Some(Token::Plus));
-    /// assert_eq!(lexer.slice(), "+");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// ```
-    #[token("+")]
-    Plus,
-
-    /// The dash/hyphen/minus (`-`) operator.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("21 - 21");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// assert_eq!(lexer.next(), Some(Token::Dash));
-    /// assert_eq!(lexer.slice(), "-");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// ```
-    #[token("-")]
-    Dash,
-
-    /// The star/asterisk/multiply (`*`) operator.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("21 * 21");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// assert_eq!(lexer.next(), Some(Token::Star));
-    /// assert_eq!(lexer.slice(), "*");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// ```
-    #[token("*")]
-    Star,
-
-    /// The forward slash/divide (`/`) operator.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("42 / 2");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "42");
-    /// assert_eq!(lexer.next(), Some(Token::Slash));
-    /// assert_eq!(lexer.slice(), "/");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "2");
-    /// ```
-    #[token("/")]
-    Slash,
-
-    /// The percent/modulus (`%`) operator.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("21 % 2");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "21");
-    /// assert_eq!(lexer.next(), Some(Token::Percent));
-    /// assert_eq!(lexer.slice(), "%");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "2");
-    /// ```
-    #[token("%")]
-    Percent,
-
-    /// The equals operator (`=`).
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("my_iden = 2");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "my_iden");
-    /// assert_eq!(lexer.next(), Some(Token::Equals));
-    /// assert_eq!(lexer.slice(), "=");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "2");
-    /// ```
-    #[token("=")]
-    Equals,
-
-    /// A comma token: `,`
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("[1, 2]");
-    /// assert_eq!(lexer.next(), Some(Token::OBrack));
-    /// assert_eq!(lexer.slice(), "[");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "1");
-    /// assert_eq!(lexer.next(), Some(Token::Comma));
-    /// assert_eq!(lexer.slice(), ",");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "2");
-    /// assert_eq!(lexer.next(), Some(Token::CBrack));
-    /// assert_eq!(lexer.slice(), "]");
-    /// ```
-    #[token(",")]
-    Comma,
-
-    /// A semicolon (`;`)
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("hello;");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "hello");
-    /// assert_eq!(lexer.next(), Some(Token::Semicolon));
-    /// assert_eq!(lexer.slice(), ";");
-    /// ```
-    #[token(";")]
-    Semicolon,
-
-    /// A colon (`:`)
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("hello: string");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "hello");
-    /// assert_eq!(lexer.next(), Some(Token::Colon));
-    /// assert_eq!(lexer.slice(), ":");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "string");
-    /// ```
-    #[token(":")]
-    Colon,
-
-    /// C-like comments.
-    #[regex("//(.*)", logos::skip)]
-    Comment,
-
-    /// A number literal that supports integers and floating point numbers, with an optional
-    /// mantissa (exponent).
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("42 4.2 4.2e1");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "42");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "4.2");
-    /// assert_eq!(lexer.next(), Some(Token::Number));
-    /// assert_eq!(lexer.slice(), "4.2e1");
-    /// ```
-    #[regex("[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?")]
-    Number,
+    /// Allocates a new lexer, initializing it as an iterator from the string provided.  The string will
+    /// be stored and used by the lexer to find tokens.
+    pub fn new(input: &'a str) -> Self {
+        let lexer = Token::lexer(input);
+        Self {
+            input,
+            lexer
+        }
+    }
     
-    /// A Flycatcher style string literal, which may start and end with either `'` or `"`.  It
-    /// allows escaping characters, but those are not parsed here.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("'Hello, world!' \"Hello, world!\"");
-    /// assert_eq!(lexer.next(), Some(Token::String));
-    /// assert_eq!(lexer.slice(), "'Hello, world!'");
-    /// assert_eq!(lexer.next(), Some(Token::String));
-    /// assert_eq!(lexer.slice(), "\"Hello, world!\"");
-    /// ```
-    #[regex("\"([^\"\\\\]*(\\.[^\"\\\\]*)*)\"|'([^'\\\\]*(\\.[^'\\\\]*)*)'")]
-    String,
+    /// Returns the current token as a string value.
+    pub fn slice(&mut self) -> &'a str {
+        self.lexer.slice()
+    }
 
-    /// A preprocessor identifier.  Used before compilations to preprocess the source.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("#my_preprocessor");
-    /// assert_eq!(lexer.next(), Some(Token::PreprocessorIdentifier));
-    /// assert_eq!(lexer.slice(), "#my_preprocessor");
-    /// ```
-    #[regex(r"#[a-zA-Z_$][a-zA-Z_$0-9]*")]
-    PreprocessorIdentifier,
+    /// Returns the starting and ending positions of the current token.
+    pub fn span(&mut self) -> Range<usize> {
+        self.lexer.span()
+    }
+
+    /// "Peeks" at the next token in the input string, if any.  This is done by cloning the lexer's
+    /// iterator and recieving the next value from it.
+    pub fn peek(&self) -> Option<Token> {
+        self.lexer.clone().next()
+    }
+
+}
+
+impl<'a> Iterator for Lexer<'a> {
     
-    /// A construct identifier.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("@my_construct");
-    /// assert_eq!(lexer.next(), Some(Token::ConstructIdentifier));
-    /// assert_eq!(lexer.slice(), "@my_construct");
-    /// ```
-    #[regex(r"@[a-zA-Z_$][a-zA-Z_$0-9]*")]
-    ConstructIdentifier,
+    type Item = Token;
 
-    /// A Flycatcher style identifier literal.  An identifier must start with one of
-    /// `a-z`/`A-Z`, `_` or `$`.  Any character after that must be one of `a-z`/`A-Z`, `_`, `$`
-    /// or `0-9`.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer("Hello");
-    /// assert_eq!(lexer.next(), Some(Token::Identifier));
-    /// assert_eq!(lexer.slice(), "Hello");
-    /// ```
-    #[regex(r"[a-zA-Z_$][a-zA-Z_$0-9]*")]
-    Identifier,
-
-    /// This token matches any whitespace character, including regular whitespaces, tabs and
-    /// line breaks/new lines.  It is ignored at lexing time and Logos will pass over it if it
-    /// is found.
-    /// 
-    /// ```
-    /// use flycatcher_lexer::Logos;
-    /// use flycatcher_lexer::Token;
-    /// 
-    /// let mut lexer = Token::lexer(" \t\n");
-    /// assert_eq!(lexer.next(), None);
-    /// ```
-    #[regex(r"\s+", logos::skip)]
-    Whitespace,
-
-    /// The `Invalid` token matches any character that doesn't match any other token types, it's
-    /// basically a catchall.  This is recognized as an error at parsing time and will always
-    /// throw an error.  The only time that it's impossible to find this token is inside of a
-    /// string, any characters may be matched in a string, provided they are UTF characters.
-    #[error]
-    Invalid,
+    fn next(&mut self) -> Option<Self::Item> {
+        self.lexer.next()
+    }
 
 }
