@@ -52,6 +52,14 @@ pub enum Token {
     #[token("<=")]
     LessEquals,
 
+    /// The `&&` comparison operator.
+    #[token("&&")]
+    AndAnd,
+
+    /// The `||` comparison operator.
+    #[token("||")]
+    OrOr,
+
     /// The `>` operator.
     #[token(">")]
     Greater,
