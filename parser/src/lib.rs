@@ -197,11 +197,13 @@ impl<'a> Parser<'a> {
                 // didn't match any other tokens, such as any UTF-8 character (outside of a string, of
                 // course).
 
-                let label1 = Label::primary((), self.lexer.span())
-                    .with_message(format!("unexpected '{}' (invalid character)", self.lexer.slice()));
+                let label1 = Label::primary((), self.lexer.span()).with_message(format!(
+                    "unexpected '{}' (invalid character)",
+                    self.lexer.slice()
+                ));
 
                 let mut labels = vec![label1];
-                
+
                 // If the expected token has a valid name, then we will add an additional label stating
                 // what the parser expected.
                 if let Some(s) = expect.as_string() {
@@ -220,7 +222,7 @@ impl<'a> Parser<'a> {
                     .with_code("E0005")
                     .with_labels(labels)
                     .with_message(format!("invalid character: '{}'", self.lexer.slice()));
-                
+
                 self.context.diagnostics.push(diagnostic);
             } else {
                 // The token matched was technically valid, just not in this context as it doesn't match
@@ -228,7 +230,7 @@ impl<'a> Parser<'a> {
 
                 let label = Label::primary((), self.lexer.span())
                     .with_message(format!("unexpected '{}'", self.lexer.slice()));
-                
+
                 let diagnostic = Diagnostic::error()
                     .with_code("E0006")
                     .with_labels(vec![label])
@@ -241,7 +243,7 @@ impl<'a> Parser<'a> {
                             format!("unexpected '{}'", self.lexer.slice())
                         }
                     });
-                
+
                 self.context.diagnostics.push(diagnostic);
             }
 
@@ -359,7 +361,7 @@ impl<'a> Parser<'a> {
                 //    ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ The token found is an invalid string.  Even though this
                 //                         method ignores any tokens that aren't valid, it still must
                 //                         report errors.
-                
+
                 //   ↓↓↓↓↓↓↓↓↓↓↓↓ Iterate to the invalid string token.
                 self.lexer.next();
 
@@ -402,11 +404,15 @@ impl<'a> Parser<'a> {
                     self.context.diagnostics.push(diagnostic);
                 }
             } else if tok == Token::Invalid {
-                let label1 = Label::primary((), self.lexer.span())
-                    .with_message(format!("unexpected '{}' (invalid character)", self.lexer.slice()));
+                self.lexer.next();
+
+                let label1 = Label::primary((), self.lexer.span()).with_message(format!(
+                    "unexpected '{}' (invalid character)",
+                    self.lexer.slice()
+                ));
 
                 let mut labels = vec![label1];
-                
+
                 // If the expected token has a valid name, then we will add an additional label stating
                 // what the parser expected.
                 if let Some(s) = expect.as_string() {
@@ -425,12 +431,13 @@ impl<'a> Parser<'a> {
                     .with_code("E0005")
                     .with_labels(labels)
                     .with_message(format!("invalid character: '{}'", self.lexer.slice()));
-                
+
                 self.context.diagnostics.push(diagnostic);
+                self.successful = false;
             } else {
                 let label = Label::primary((), self.lexer.span())
                     .with_message(format!("unexpected '{}'", self.lexer.slice()));
-                
+
                 let diagnostic = Diagnostic::error()
                     .with_code("E0006")
                     .with_labels(vec![label])
@@ -443,16 +450,99 @@ impl<'a> Parser<'a> {
                             format!("unexpected '{}'", self.lexer.slice())
                         }
                     });
-                
-                self.context.diagnostics.push(diagnostic);
-            }
 
-            self.successful = false;
+                self.context.diagnostics.push(diagnostic);
+                self.successful = false;
+            }
 
             return false;
         }
 
         // We default to false and return since a matching token is optional.
         false
+    }
+
+    /// Parses a "primary" token.  Primary tokens are identifiers, numbers, booleans, etc. and may be
+    /// used in any expression.
+    fn parse_primary(&mut self) -> Option<AstMeta> {
+        //  1. We're expecting an *optional* identifier token.  It returns a boolean of whether or not
+        //     the token was found.
+        //  2. We don't want document comments before this token.  Document comments are for functions
+        //     and constructs.
+        //               (1) ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓  ↓↓↓↓↓ (2)
+        if self.eat_optional(Token::Identifier, false) {
+            // If this `if` statement is true, it means that a valid identifier was found.  We can now
+            // return it as a value.
+            return Some(AstMeta::new(
+                self.lexer.span(),
+                Ast::IdentifierLiteral(self.lexer.slice().into()),
+            ));
+        } else if self.eat_optional(Token::TrueKeyword, false) {
+            return Some(AstMeta::new(self.lexer.span(), Ast::BooleanLiteral(true)));
+        } else if self.eat_optional(Token::FalseKeyword, false) {
+            return Some(AstMeta::new(self.lexer.span(), Ast::BooleanLiteral(false)));
+        } else if self.eat_optional(Token::String, false) {
+            let slice = self.lexer.slice();
+            //          ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+            // We use this variable for slightly better efficiency, rather than calling
+            // `self.lexer.slice()` multiple times below.
+
+            return Some(AstMeta::new(
+                self.lexer.span(),
+                Ast::StringLiteral(slice[1..slice.len() - 1].into()),
+                //                 ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ This removes the starting and ending quotes
+                //                                           from the string.
+            ));
+        } else if self.eat_optional(Token::Number, false) {
+            //                      ↑↑↑↑↑↑↑↑↑↑↑↑↑
+            // As you can tell (I'm sure you can), the token found was a number.  This means that we
+            // need to convert the number to the correct AST item.
+
+            let slice = self.lexer.slice();
+
+            if slice.contains('e') || slice.contains('E') || slice.contains('.') {
+                // The token found must have been a floating point number.
+                return Some(AstMeta::new(
+                    self.lexer.span(),
+                    // We need to convert the slice into a float, this is possible with Rust's `parse`
+                    // method.
+                    //                ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+                    Ast::FloatLiteral(slice.parse::<f64>().unwrap())
+                ));
+            } else {
+                // The token is an integer literal, so we need to confirm that the number is small
+                // enough to fit into a `u64`.
+
+                if let Ok(item) = slice.parse::<u64>() {
+                    // ↑↑↑↑↑↑↑↑ This if statement checks if the number was small enough or not.  If we
+                    //          reach this block, then the number must have been valid.
+
+                    return Some(AstMeta::new(
+                        self.lexer.span(),
+                        Ast::IntegerLiteral(item),
+                    ));
+                } else {
+                    // The u64 parsing process was unsuccessful, so we should throw a diagnostic saying
+                    // so.
+                    
+                    let label = Label::primary((), self.lexer.span())
+                        .with_message("this number is too large to handle.");
+                    //                                ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ ;)
+                    
+                    let diagnostic = Diagnostic::error()
+                        .with_code("E0007")
+                        .with_labels(vec![label])
+                        .with_message("invalid number (too large).");
+                    
+                    self.context.diagnostics.push(diagnostic);
+                    self.successful = false;
+
+                    // We can fall through because be default, this function returns `None`.
+                }
+            }
+        }
+
+        // Default to a None value.
+        None
     }
 }
