@@ -126,9 +126,9 @@ pub enum Token {
     #[token("%")]
     Percent,
 
-    /// The `true` keyword is a boolean value equal to 1.  Booleans are used in logical operations often
-    /// used to compare two sides of an expression.  For example, `1 == 1` would be equal to `true`, and
-    /// `1 == 2` would be 'false'.
+    /// The `true` keyword is a boolean value equal to 1.  Booleans are used in logical operations
+    /// often used to compare two sides of an expression.  For example, `1 == 1` would be equal to
+    /// `true`, and `1 == 2` would be 'false'.
     #[token("true")]
     TrueKeyword,
 
@@ -162,8 +162,8 @@ pub enum Token {
     /// either `"` or `'`.
     ///
     /// The string, at the lexing phase, *supports* escaped quotes, but they aren't converted to their
-    /// correct characters yet.  This is done during parsing.  For example, `"\"Hello, world!\""` is the
-    /// same as `"\\\"Hello, world!\\\""` in a Rust string.
+    /// correct characters yet.  This is done during parsing.  For example, `"\"Hello, world!\""` is
+    /// the same as `"\\\"Hello, world!\\\""` in a Rust string.
     #[regex("\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*'")]
     String,
 
@@ -216,8 +216,8 @@ pub enum Token {
     Whitespace,
 
     /// `Invalid` is a token provided by Logos, which is just a token that doesn't match any other
-    /// token's signature.  This doesn't actually pass as an "error" while lexing, it's up to the parser
-    /// to throw an error if this token was found.
+    /// token's signature.  This doesn't actually pass as an "error" while lexing, it's up to the
+    /// parser to throw an error if this token was found.
     #[error]
     Invalid,
 }

@@ -23,24 +23,20 @@ pub struct AstMeta {
 impl AstMeta {
     /// Creates an AST metadata struct.  `semicolon` defaults to `false`, which may be changed later.
     pub fn new(range: Range<usize>, item: Ast) -> Self {
-        Self {
-            range,
-            semicolon: false,
-            comments: vec![],
-            item,
-            parenthesis: false,
-        }
+        Self { range,
+               semicolon: false,
+               comments: vec![],
+               item,
+               parenthesis: false }
     }
 
     /// Creates an AST metadata object and immediately boxes it.
     pub fn boxed(range: Range<usize>, item: Ast) -> Box<Self> {
-        Box::new(Self {
-            range,
-            semicolon: false,
-            comments: vec![],
-            item,
-            parenthesis: false,
-        })
+        Box::new(Self { range,
+                        semicolon: false,
+                        comments: vec![],
+                        item,
+                        parenthesis: false })
     }
 
     /// Sets the list of comments for this AST item.

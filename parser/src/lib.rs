@@ -30,21 +30,19 @@ impl<'a> Parser<'a> {
     /// Initializes a parser that will parse the provided `source` string.  A parser emits a Flycatcher
     /// AST tree, which can be used to compile to a binary or perform analyses of the source string.
     pub fn new(filename: &'a str, source: &'a str) -> Self {
-        Self {
-            filename,
-            source,
-            diagnostics: vec![],
-            comments: vec![],
-            successful: true,
-            lexer: Lexer::new(source),
-        }
+        Self { filename,
+               source,
+               diagnostics: vec![],
+               comments: vec![],
+               successful: true,
+               lexer: Lexer::new(source) }
     }
 
     /// Consumes a single token from the lexer.  If the next token doesn't match, it will emit one or
     /// more diagnostic messages to the `diagnostics` vector.
     ///
     /// This method ignores whitespaces, line breaks and comments.
-    /// 
+    ///
     /// If `doc` is true, it pushes any document comments to the comments table.  Otherwise, it will
     /// throw an error if any diagnostic messages are found.
     fn eat(&mut self, expect: Token, doc: bool) -> bool {
@@ -65,7 +63,7 @@ impl<'a> Parser<'a> {
                 //           ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
                 // The current token is a documentation comment.  This means that we need to push the
                 // comment into the comments vector.  This is only if the `doc` parameter is `true`.
-                
+
                 if !doc {
                     // An error must be thrown as the document comment isn't allowed here.  We won't
                     // break the loop because of this though.
@@ -75,11 +73,11 @@ impl<'a> Parser<'a> {
                     let label = Label::primary((), self.lexer.span())
                         .with_message("document comments aren't allowed here.");
 
-                    let diagnostic = Diagnostic::error()
-                        .with_code("E0004")
-                        .with_labels(vec![label])
-                        .with_message("invalid place for a document comment.");
-                    
+                    let diagnostic =
+                        Diagnostic::error().with_code("E0004")
+                                           .with_labels(vec![label])
+                                           .with_message("invalid place for a document comment.");
+
                     self.successful = false;
                     self.diagnostics.push(diagnostic);
                 }
@@ -119,7 +117,7 @@ impl<'a> Parser<'a> {
             if tok == Token::InvalidString {
                 //    ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
                 // `InvalidString`s are strings that opened, but don't have a matching closing quote on
-                //the same line.
+                // the same line.
 
                 let span = self.lexer.span();
 
@@ -154,10 +152,9 @@ impl<'a> Parser<'a> {
                     // which should tell any parent processes that the compilation process wasn't
                     // successful.
                     //               ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-                    let diagnostic = Diagnostic::error()
-                        .with_code("E0001")
-                        .with_labels(vec![label1, label2])
-                        .with_message("unclosed string.");
+                    let diagnostic = Diagnostic::error().with_code("E0001")
+                                                        .with_labels(vec![label1, label2])
+                                                        .with_message("unclosed string.");
 
                     self.diagnostics.push(diagnostic);
                 }
@@ -167,26 +164,31 @@ impl<'a> Parser<'a> {
                     //                     expecting a string.
                     let label = Label::primary((), span).with_message("unexpected string.");
 
-                    let diagnostic = Diagnostic::error()
-                        .with_code("E0002")
-                        .with_labels(vec![label])
-                        .with_message(if let Some(s) = expect.as_string() {
-                            //                         ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-                            // There is a string constant for the token, meaning it is likely a keyword
-                            // or operator was expected.  Either way, we can use that in the label here.
-                            format!("expected '{}', found string.", s)
-                        } else {
-                            if let Some(s) = expect.as_name() {
-                                //           ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-                                // This gets the name of the object, such as "a boolean" or "a string".
-                                // Usually, this is used in place of the `as_string()` method if no
-                                // string was returned.
-                                format!("expected {}, found string.", s)
-                            } else {
-                                // This is the default error message.
-                                "unexpected string".into()
-                            }
-                        });
+                    let diagnostic =
+                        Diagnostic::error().with_code("E0002")
+                                           .with_labels(vec![label])
+                                           .with_message(if let Some(s) = expect.as_string() {
+                                                             // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+                                                             // There is a string constant for the
+                                                             // token, meaning it is likely a keyword
+                                                             // or operator was expected.  Either way,
+                                                             // we can use that in the label here.
+                                                             format!("expected '{}', found string.", s)
+                                                         } else {
+                                                             if let Some(s) = expect.as_name() {
+                                                                 //           ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+                                                                 // This gets the name of the object,
+                                                                 // such as "a boolean" or "a string".
+                                                                 // Usually, this is used in place of
+                                                                 // the `as_string()` method if no
+                                                                 // string was returned.
+                                                                 format!("expected {}, found string.",
+                                                                         s)
+                                                             } else {
+                                                                 // This is the default error message.
+                                                                 "unexpected string".into()
+                                                             }
+                                                         });
 
                     self.diagnostics.push(diagnostic);
                 }
