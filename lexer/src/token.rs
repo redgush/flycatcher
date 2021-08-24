@@ -256,4 +256,27 @@ impl Token {
             _ => None,
         }
     }
+
+    /// Gets the name of the token, as a string.  For example, `true` and `false` are "a boolean".
+    pub fn as_name(&self) -> Option<String> {
+        match self {
+            Token::TrueKeyword | Token::FalseKeyword => Some("a boolean".into()),
+            Token::Identifier => Some("a name".into()),
+            Token::ConstructIdentifier => Some("a construct name".into()),
+            Token::PreprocessorIdentifier => Some("a preprocessor name".into()),
+            Token::String => Some("a string".into()),
+            Token::Number => Some("a number".into()),
+            Token::DeclareKeyword => Some("'declare'".into()),
+            _ => {
+                // If there was a success finding the string related to the token, we wrap it in
+                // quotes.
+                // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+                if let Some(n) = self.as_string() {
+                    Some("'".to_string() + &n + "'")
+                } else {
+                    None
+                }
+            }
+        }
+    }
 }
