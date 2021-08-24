@@ -191,6 +191,58 @@ impl<'a> Parser<'a> {
 
                     self.context.diagnostics.push(diagnostic);
                 }
+            } else if tok == Token::Invalid {
+                //           ↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+                // "What defines an invalid token?" you may ask.  An invalid token is a character that
+                // didn't match any other tokens, such as any UTF-8 character (outside of a string, of
+                // course).
+
+                let label1 = Label::primary((), self.lexer.span())
+                    .with_message(format!("unexpected '{}' (invalid character)", self.lexer.slice()));
+
+                let mut labels = vec![label1];
+                
+                // If the expected token has a valid name, then we will add an additional label stating
+                // what the parser expected.
+                if let Some(s) = expect.as_string() {
+                    let label2 = Label::secondary((), self.lexer.span())
+                        .with_message(format!("expected '{}'", s));
+                    labels.push(label2);
+                } else {
+                    if let Some(s) = expect.as_name() {
+                        let label2 = Label::secondary((), self.lexer.span())
+                            .with_message(format!("expected {}", s));
+                        labels.push(label2);
+                    }
+                }
+
+                let diagnostic = Diagnostic::error()
+                    .with_code("E0005")
+                    .with_labels(labels)
+                    .with_message(format!("invalid character: '{}'", self.lexer.slice()));
+                
+                self.context.diagnostics.push(diagnostic);
+            } else {
+                // The token matched was technically valid, just not in this context as it doesn't match
+                // the expected token type.
+
+                let label = Label::primary((), self.lexer.span())
+                    .with_message(format!("unexpected '{}'", self.lexer.slice()));
+                
+                let diagnostic = Diagnostic::error()
+                    .with_code("E0006")
+                    .with_labels(vec![label])
+                    .with_message(if let Some(s) = expect.as_string() {
+                        format!("expected '{}', found '{}'.", s, self.lexer.slice())
+                    } else {
+                        if let Some(s) = expect.as_name() {
+                            format!("expected {}, found '{}'.", s, self.lexer.slice())
+                        } else {
+                            format!("unexpected '{}'", self.lexer.slice())
+                        }
+                    });
+                
+                self.context.diagnostics.push(diagnostic);
             }
 
             // Tell the rest of the parser that the eating process was unsuccessful.
@@ -349,6 +401,50 @@ impl<'a> Parser<'a> {
 
                     self.context.diagnostics.push(diagnostic);
                 }
+            } else if tok == Token::Invalid {
+                let label1 = Label::primary((), self.lexer.span())
+                    .with_message(format!("unexpected '{}' (invalid character)", self.lexer.slice()));
+
+                let mut labels = vec![label1];
+                
+                // If the expected token has a valid name, then we will add an additional label stating
+                // what the parser expected.
+                if let Some(s) = expect.as_string() {
+                    let label2 = Label::secondary((), self.lexer.span())
+                        .with_message(format!("expected '{}'", s));
+                    labels.push(label2);
+                } else {
+                    if let Some(s) = expect.as_name() {
+                        let label2 = Label::secondary((), self.lexer.span())
+                            .with_message(format!("expected {}", s));
+                        labels.push(label2);
+                    }
+                }
+
+                let diagnostic = Diagnostic::error()
+                    .with_code("E0005")
+                    .with_labels(labels)
+                    .with_message(format!("invalid character: '{}'", self.lexer.slice()));
+                
+                self.context.diagnostics.push(diagnostic);
+            } else {
+                let label = Label::primary((), self.lexer.span())
+                    .with_message(format!("unexpected '{}'", self.lexer.slice()));
+                
+                let diagnostic = Diagnostic::error()
+                    .with_code("E0006")
+                    .with_labels(vec![label])
+                    .with_message(if let Some(s) = expect.as_string() {
+                        format!("expected '{}', found '{}'.", s, self.lexer.slice())
+                    } else {
+                        if let Some(s) = expect.as_name() {
+                            format!("expected {}, found '{}'.", s, self.lexer.slice())
+                        } else {
+                            format!("unexpected '{}'", self.lexer.slice())
+                        }
+                    });
+                
+                self.context.diagnostics.push(diagnostic);
             }
 
             self.successful = false;
@@ -356,6 +452,7 @@ impl<'a> Parser<'a> {
             return false;
         }
 
+        // We default to false and return since a matching token is optional.
         false
     }
 }
