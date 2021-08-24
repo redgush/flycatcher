@@ -3,12 +3,6 @@ use flycatcher_lexer::Token;
 /// A list of opcodes that may be used in binary expressions.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Opcode {
-    /// A member access using the `.` operator.
-    MemberAccess,
-
-    /// A member access using the `[]` operators.
-    Subscript,
-
     Comma,
     GreaterGreater,
     LessLess,
@@ -36,8 +30,6 @@ impl Opcode {
     /// Returns the opcode associated with a token, if any.
     pub fn from_token(tok: Token) -> Option<Opcode> {
         match tok {
-            Token::Period => Some(Opcode::MemberAccess),
-            Token::LBrack => Some(Opcode::Subscript),
             Token::Comma => Some(Opcode::Comma),
             Token::GreaterGreater => Some(Opcode::GreaterGreater),
             Token::LessLess => Some(Opcode::LessLess),
@@ -62,8 +54,6 @@ impl Opcode {
     /// Calculates the precedence of this binary operator.
     pub fn precedence(&self) -> usize {
         match self {
-            Self::MemberAccess => 100,
-            Self::Subscript => 100,
             Self::Not => 99,
             Self::Asterisk => 98,
             Self::Slash => 98,
