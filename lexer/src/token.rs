@@ -144,6 +144,15 @@ pub enum Token {
     #[token("declare")]
     DeclareKeyword,
 
+    /// The `pub` keyword makes a field of a module or construct accessible to the public.  This is
+    /// ignored for imports using the `#include` preprocessor.
+    #[token("pub")]
+    PubKeyword,
+
+    /// `priv` makes a field of a module or construct private.
+    #[token("priv")]
+    PrivKeyword,
+
     /// A number literal in Flycatcher may be a floating point number, or it may be an integer.  This
     /// token also matches an optional exponent/mantissa, like so:
     ///
