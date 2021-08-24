@@ -8,4 +8,17 @@ pub use opcode::Opcode;
 pub enum Ast {
     /// An identifier literal, such as `my_identifier` or `__my4other2identifier`.
     IdentifierLiteral(String),
+
+    /// Booleans may either be `true` or `false`.
+    BooleanLiteral(bool),
+
+    /// A string literal such as "Hello, world!".
+    StringLiteral(String),
+
+    /// Integer literals cannot be negative at the parsing phase, since the operator to make them
+    /// negative isn't functional until the compilation phase.
+    IntegerLiteral(u64),
+
+    /// A floating point number literal, like `42.0` or `4.2e1`.
+    FloatLiteral(f64),
 }
