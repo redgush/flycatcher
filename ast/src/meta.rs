@@ -15,6 +15,9 @@ pub struct AstMeta {
 
     /// The AST item that this struct wraps.
     pub item: Ast,
+
+    /// Whether or not the AST item is wrapped in parenthesis.
+    pub parenthesis: bool,
 }
 
 impl AstMeta {
@@ -25,6 +28,7 @@ impl AstMeta {
             semicolon: false,
             comments: vec![],
             item,
+            parenthesis: false,
         }
     }
 
@@ -35,6 +39,7 @@ impl AstMeta {
             semicolon: false,
             comments: vec![],
             item,
+            parenthesis: false,
         })
     }
 
@@ -47,5 +52,10 @@ impl AstMeta {
     /// Sets the value of `semicolon` to `true`.
     pub fn semicolon(&mut self) {
         self.semicolon = true;
+    }
+
+    /// Sets the value of `parenthesis` to `true`.
+    pub fn parenthesis(&mut self) {
+        self.parenthesis = true;
     }
 }
