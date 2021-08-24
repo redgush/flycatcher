@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "ast",
+    "diagnostic",
     "lexer",
     "parser",
 ]
