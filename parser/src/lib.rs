@@ -1,20 +1,14 @@
 //! Flycatcher's parser, which uses the lexer behind the scenes to convert an input string into a
 //! Flycatcher AST tree.
 
-use codespan_reporting::diagnostic::{Diagnostic, Label};
+use flycatcher_diagnostic::{Context, Diagnostic, Label};
 use flycatcher_ast::{Ast, AstMeta, Opcode};
 use flycatcher_lexer::{Lexer, Token};
 
 /// A parser which translates a string into a list of AST items.
 pub struct Parser<'a> {
-    /// The name of the file that is being parsed.
-    pub filename: &'a str,
-
-    /// The source string that is being parsed.
-    pub source: &'a str,
-
     /// A list of diagnostics emitted by the parser.
-    pub diagnostics: Vec<Diagnostic<()>>,
+    pub context: &'a mut Context<'a>,
 
     /// A list of document comments before an AST item.
     comments: Vec<String>,
@@ -29,14 +23,13 @@ pub struct Parser<'a> {
 impl<'a> Parser<'a> {
     /// Initializes a parser that will parse the provided `source` string.  A parser emits a Flycatcher
     /// AST tree, which can be used to compile to a binary or perform analyses of the source string.
-    pub fn new(filename: &'a str, source: &'a str) -> Self {
+    pub fn new(context: &'a mut Context<'a>) -> Self {
+        let str = context.source;
         Self {
-            filename,
-            source,
-            diagnostics: vec![],
+            context,
             comments: vec![],
             successful: true,
-            lexer: Lexer::new(source),
+            lexer: Lexer::new(str),
         }
     }
 
@@ -81,7 +74,7 @@ impl<'a> Parser<'a> {
                         .with_message("invalid place for a document comment.");
 
                     self.successful = false;
-                    self.diagnostics.push(diagnostic);
+                    self.context.diagnostics.push(diagnostic);
                 }
 
                 // Of course, we need to remove the leading slashes and the first leading space, if any.
@@ -157,7 +150,7 @@ impl<'a> Parser<'a> {
                         .with_labels(vec![label1, label2])
                         .with_message("unclosed string.");
 
-                    self.diagnostics.push(diagnostic);
+                    self.context.diagnostics.push(diagnostic);
                 }
 
                 if expect != Token::String {
@@ -190,7 +183,7 @@ impl<'a> Parser<'a> {
                             }
                         });
 
-                    self.diagnostics.push(diagnostic);
+                    self.context.diagnostics.push(diagnostic);
                 }
             }
 
@@ -222,7 +215,7 @@ impl<'a> Parser<'a> {
                 }
             });
 
-        self.diagnostics.push(diagnostic);
+        self.context.diagnostics.push(diagnostic);
         self.successful = false;
 
         // We default to false as an error must have occurred, since the loop didn't provide any
@@ -271,7 +264,7 @@ impl<'a> Parser<'a> {
                         .with_message("invalid place for a document comment.");
 
                     self.successful = false;
-                    self.diagnostics.push(diagnostic);
+                    self.context.diagnostics.push(diagnostic);
                 }
 
                 // Remove the first 3 (and any more) leading slashes of the comment.
@@ -307,7 +300,7 @@ impl<'a> Parser<'a> {
                         .with_labels(vec![label1, label2])
                         .with_message("unclosed string.");
 
-                    self.diagnostics.push(diagnostic);
+                    self.context.diagnostics.push(diagnostic);
                 }
 
                 if expect != Token::String {
@@ -326,7 +319,7 @@ impl<'a> Parser<'a> {
                             }
                         });
 
-                    self.diagnostics.push(diagnostic);
+                    self.context.diagnostics.push(diagnostic);
                 }
             }
 

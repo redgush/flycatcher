@@ -43,8 +43,8 @@ dependencies = [
 name = "flycatcher-parser"
 version = "0.2.0"
 dependencies = [
- "codespan-reporting",
  "flycatcher-ast",
+ "flycatcher-diagnostic",
  "flycatcher-lexer",
 ]
 
