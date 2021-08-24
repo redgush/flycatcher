@@ -1,8 +1,8 @@
 //! Flycatcher's parser, which uses the lexer behind the scenes to convert an input string into a
 //! Flycatcher AST tree.
 
-use flycatcher_diagnostic::{Context, Diagnostic, Label};
 use flycatcher_ast::{Ast, AstMeta, Opcode};
+use flycatcher_diagnostic::{Context, Diagnostic, Label};
 use flycatcher_lexer::{Lexer, Token};
 
 /// A parser which translates a string into a list of AST items.
@@ -21,10 +21,16 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    /// Initializes a parser that will parse the provided `source` string.  A parser emits a Flycatcher
-    /// AST tree, which can be used to compile to a binary or perform analyses of the source string.
+    /// Initializes a parser that will parse the source string from the provided context..  A parser
+    /// emits a Flycatcher AST tree, which can be used to compile to a binary or perform analyses of the
+    /// source string.
     pub fn new(context: &'a mut Context<'a>) -> Self {
+        // NOTE: we need to use `context.source` as a seperate variable because of Rust's borrow
+        // checking system.  If we did otherwise, Rust would think that the context is being borrowed
+        // mutably and immutably at the same time, causing a compilation error.
+        //  ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
         let str = context.source;
+
         Self {
             context,
             comments: vec![],
@@ -162,23 +168,23 @@ impl<'a> Parser<'a> {
                         .with_code("E0002")
                         .with_labels(vec![label])
                         .with_message(if let Some(s) = expect.as_string() {
-                            // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-                            // There is a string constant for the
-                            // token, meaning it is likely a keyword
-                            // or operator was expected.  Either way,
-                            // we can use that in the label here.
+                            //                         ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+                            // There is a string constant for the token, meaning it is likely a keyword
+                            // or operator was expected.  Either way, we can use that in the label here.
                             format!("expected '{}', found string.", s)
                         } else {
+                            // Otherwise, we can check whether or not the token is provided a human
+                            // friendly name.  If not, we just send off the most generic label possible.
                             if let Some(s) = expect.as_name() {
                                 //           ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-                                // This gets the name of the object,
-                                // such as "a boolean" or "a string".
-                                // Usually, this is used in place of
-                                // the `as_string()` method if no
+                                // This gets the name of the object, such as "a boolean" or "a string".
+                                // Usually, this is used in place of the `as_string()` method if no
                                 // string was returned.
                                 format!("expected {}, found string.", s)
                             } else {
-                                // This is the default error message.
+                                // The very generic default.  I don't believe it should ever get here,
+                                // but if it does, you'll see "uNeXpEcTeD sTrInG" show up on your
+                                // terminal.
                                 "unexpected string".into()
                             }
                         });
@@ -243,14 +249,21 @@ impl<'a> Parser<'a> {
                 // First we must iterate to the next token, since we only peeked for this token.
                 self.lexer.next();
 
+                //     ↓↓↓↓ Again, `true` means that we successfully found the token.
                 return true;
             } else if tok == Token::DocComment {
+                //    ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
                 // As seen above, the current token is a documentation comment.  If doc comments are
                 // allowed, we can push the value of the comment to the `comments` table.
 
-                // Since we only `peek()`ed above, we must iterate to this comment.
+                // Above we did: let mut next_token = self.lexer.peek();
+                //                                    ^^^^^^^^^^^^^^^^^
+                // This doesn't actually advance to the next token, this only returns what token is
+                // next, without iterating.  This means we have yet to *iterate to the doc comment!*
                 self.lexer.next();
 
+                //      If this is false, document comments aren't allowed before the expected token.
+                // ↓↓↓↓ This is used for function definitions, classes, etc.
                 if !doc {
                     // Document comments aren't allowed here, so we must throw another diagnostic.  This
                     // should be the same error as above, `E0004`.
@@ -286,7 +299,20 @@ impl<'a> Parser<'a> {
                 continue;
             }
 
+            // We can safely assume the token was either invalid or didn't match the `expect`ed token.
+            // This method ignores any tokens that don't match the expected token, but we still need to
+            // verify that the token found was value.
+
             if tok == Token::InvalidString {
+                //    ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ The token found is an invalid string.  Even though this
+                //                         method ignores any tokens that aren't valid, it still must
+                //                         report errors.
+                
+                //   ↓↓↓↓↓↓↓↓↓↓↓↓ Iterate to the invalid string token.
+                self.lexer.next();
+
+                // You should hopefully understand what's going on here by now, so I won't commentate
+                // over most of the diagnostic emitting part.
                 let span = self.lexer.span();
                 {
                     let label1 = Label::primary((), span.clone())
@@ -303,6 +329,8 @@ impl<'a> Parser<'a> {
                     self.context.diagnostics.push(diagnostic);
                 }
 
+                //                         Before we return, we check if the parser even expected a
+                // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓ string.
                 if expect != Token::String {
                     let label = Label::primary((), span).with_message("unexpected string.");
 
