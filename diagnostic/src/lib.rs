@@ -118,10 +118,12 @@ impl<'a> Context<'a> {
             styles.primary_label_warning = yellow_spec.clone();
         }
 
-        Self { config,
-               filename,
-               source,
-               diagnostics: vec![] }
+        Self {
+            config,
+            filename,
+            source,
+            diagnostics: vec![],
+        }
     }
 
     /// Emits a diagnostic that were emitted to this context.
