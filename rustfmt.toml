@@ -1,9 +1,9 @@
 binop_separator = "Back"
 comment_width = 104
 imports_layout = "HorizontalVertical"
-indent_style = "Visual"
+indent_style = "Block"
 max_width = 104
 normalize_comments = true
-trailing_comma = "Always"
+trailing_comma = "Vertical"
 trailing_semicolon = true
 wrap_comments = true
