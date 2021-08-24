@@ -490,8 +490,8 @@ impl<'a> Parser<'a> {
             return Some(AstMeta::new(
                 self.lexer.span(),
                 Ast::StringLiteral(slice[1..slice.len() - 1].into()),
-                //                 ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ This removes the starting and ending quotes
-                //                                           from the string.
+                /*                 ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ This removes the starting and ending
+                 * quotes                                           from the string. */
             ));
         } else if self.eat_optional(Token::Number, false) {
             //                      ↑↑↑↑↑↑↑↑↑↑↑↑↑
@@ -507,7 +507,7 @@ impl<'a> Parser<'a> {
                     // We need to convert the slice into a float, this is possible with Rust's `parse`
                     // method.
                     //                ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-                    Ast::FloatLiteral(slice.parse::<f64>().unwrap())
+                    Ast::FloatLiteral(slice.parse::<f64>().unwrap()),
                 ));
             } else {
                 // The token is an integer literal, so we need to confirm that the number is small
@@ -517,23 +517,20 @@ impl<'a> Parser<'a> {
                     // ↑↑↑↑↑↑↑↑ This if statement checks if the number was small enough or not.  If we
                     //          reach this block, then the number must have been valid.
 
-                    return Some(AstMeta::new(
-                        self.lexer.span(),
-                        Ast::IntegerLiteral(item),
-                    ));
+                    return Some(AstMeta::new(self.lexer.span(), Ast::IntegerLiteral(item)));
                 } else {
                     // The u64 parsing process was unsuccessful, so we should throw a diagnostic saying
                     // so.
-                    
+
                     let label = Label::primary((), self.lexer.span())
                         .with_message("this number is too large to handle.");
                     //                                ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ ;)
-                    
+
                     let diagnostic = Diagnostic::error()
                         .with_code("E0007")
                         .with_labels(vec![label])
                         .with_message("invalid number (too large).");
-                    
+
                     self.context.diagnostics.push(diagnostic);
                     self.successful = false;
 
