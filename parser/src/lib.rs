@@ -30,12 +30,14 @@ impl<'a> Parser<'a> {
     /// Initializes a parser that will parse the provided `source` string.  A parser emits a Flycatcher
     /// AST tree, which can be used to compile to a binary or perform analyses of the source string.
     pub fn new(filename: &'a str, source: &'a str) -> Self {
-        Self { filename,
-               source,
-               diagnostics: vec![],
-               comments: vec![],
-               successful: true,
-               lexer: Lexer::new(source) }
+        Self {
+            filename,
+            source,
+            diagnostics: vec![],
+            comments: vec![],
+            successful: true,
+            lexer: Lexer::new(source),
+        }
     }
 
     /// Consumes a single token from the lexer.  If the next token doesn't match, it will emit one or
@@ -73,10 +75,10 @@ impl<'a> Parser<'a> {
                     let label = Label::primary((), self.lexer.span())
                         .with_message("document comments aren't allowed here.");
 
-                    let diagnostic =
-                        Diagnostic::error().with_code("E0004")
-                                           .with_labels(vec![label])
-                                           .with_message("invalid place for a document comment.");
+                    let diagnostic = Diagnostic::error()
+                        .with_code("E0004")
+                        .with_labels(vec![label])
+                        .with_message("invalid place for a document comment.");
 
                     self.successful = false;
                     self.diagnostics.push(diagnostic);
@@ -138,9 +140,7 @@ impl<'a> Parser<'a> {
                         // displayed on the label.  If we don't provide a message, `codespan-reporting`
                         // will simply display an error squiggle where the error occurred, without any
                         // helpful message.
-                        .with_message(
-                            "this string must be closed on the same line that it starts.",
-                        );
+                        .with_message("this string must be closed on the same line that it starts.");
 
                     let label2 = Label::secondary((), span.start..span.start + 1)
                         //                            ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ This is the range of
@@ -152,9 +152,10 @@ impl<'a> Parser<'a> {
                     // which should tell any parent processes that the compilation process wasn't
                     // successful.
                     //               ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-                    let diagnostic = Diagnostic::error().with_code("E0001")
-                                                        .with_labels(vec![label1, label2])
-                                                        .with_message("unclosed string.");
+                    let diagnostic = Diagnostic::error()
+                        .with_code("E0001")
+                        .with_labels(vec![label1, label2])
+                        .with_message("unclosed string.");
 
                     self.diagnostics.push(diagnostic);
                 }
@@ -164,31 +165,30 @@ impl<'a> Parser<'a> {
                     //                     expecting a string.
                     let label = Label::primary((), span).with_message("unexpected string.");
 
-                    let diagnostic =
-                        Diagnostic::error().with_code("E0002")
-                                           .with_labels(vec![label])
-                                           .with_message(if let Some(s) = expect.as_string() {
-                                                             // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-                                                             // There is a string constant for the
-                                                             // token, meaning it is likely a keyword
-                                                             // or operator was expected.  Either way,
-                                                             // we can use that in the label here.
-                                                             format!("expected '{}', found string.", s)
-                                                         } else {
-                                                             if let Some(s) = expect.as_name() {
-                                                                 //           ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-                                                                 // This gets the name of the object,
-                                                                 // such as "a boolean" or "a string".
-                                                                 // Usually, this is used in place of
-                                                                 // the `as_string()` method if no
-                                                                 // string was returned.
-                                                                 format!("expected {}, found string.",
-                                                                         s)
-                                                             } else {
-                                                                 // This is the default error message.
-                                                                 "unexpected string".into()
-                                                             }
-                                                         });
+                    let diagnostic = Diagnostic::error()
+                        .with_code("E0002")
+                        .with_labels(vec![label])
+                        .with_message(if let Some(s) = expect.as_string() {
+                            // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+                            // There is a string constant for the
+                            // token, meaning it is likely a keyword
+                            // or operator was expected.  Either way,
+                            // we can use that in the label here.
+                            format!("expected '{}', found string.", s)
+                        } else {
+                            if let Some(s) = expect.as_name() {
+                                //           ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+                                // This gets the name of the object,
+                                // such as "a boolean" or "a string".
+                                // Usually, this is used in place of
+                                // the `as_string()` method if no
+                                // string was returned.
+                                format!("expected {}, found string.", s)
+                            } else {
+                                // This is the default error message.
+                                "unexpected string".into()
+                            }
+                        });
 
                     self.diagnostics.push(diagnostic);
                 }
@@ -227,6 +227,114 @@ impl<'a> Parser<'a> {
 
         // We default to false as an error must have occurred, since the loop didn't provide any
         // results.
+        false
+    }
+
+    /// Consumes a token of the given type, if possible.  Otherwise, this returns `false`.
+    ///
+    /// If `doc` is `true`, this function will push any document
+    fn eat_optional(&mut self, expect: Token, doc: bool) -> bool {
+        let mut next_token = self.lexer.peek();
+        //                   ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+        // Unlike the `eat` method, this method peeks at the next token rather than reading it directly
+        // from the lexer.
+        //
+        // It iterates past any whitespaces, line breaks and document comments (if document comments
+        // are enabled for this eat call).
+        //
+        // This method only throws diagnostics for invalid tokens that were found.
+
+        while let Some(tok) = next_token {
+            if tok == expect {
+                // `tok` matches the expected type, so we may return a `true` boolean saying so.  BUT!
+                // First we must iterate to the next token, since we only peeked for this token.
+                self.lexer.next();
+
+                return true;
+            } else if tok == Token::DocComment {
+                // As seen above, the current token is a documentation comment.  If doc comments are
+                // allowed, we can push the value of the comment to the `comments` table.
+
+                // Since we only `peek()`ed above, we must iterate to this comment.
+                self.lexer.next();
+
+                if !doc {
+                    // Document comments aren't allowed here, so we must throw another diagnostic.  This
+                    // should be the same error as above, `E0004`.
+
+                    let label = Label::primary((), self.lexer.span())
+                        .with_message("document comments aren't allowed here.");
+
+                    let diagnostic = Diagnostic::error()
+                        .with_code("E0004")
+                        .with_labels(vec![label])
+                        .with_message("invalid place for a document comment.");
+
+                    self.successful = false;
+                    self.diagnostics.push(diagnostic);
+                }
+
+                // Remove the first 3 (and any more) leading slashes of the comment.
+                let mut slice = self.lexer.slice().trim_start_matches('/');
+
+                if slice.starts_with(' ') {
+                    // There is an extra space at the start (presumably) that is ignored by the parser.
+                    slice = &slice[1..];
+                }
+
+                self.comments.push(slice.into());
+                next_token = self.lexer.next();
+
+                continue;
+            } else if tok == Token::Whitespace || tok == Token::Linebreak {
+                self.lexer.next(); // skip over the whitespace/line break
+                next_token = self.lexer.next();
+
+                continue;
+            }
+
+            if tok == Token::InvalidString {
+                let span = self.lexer.span();
+                {
+                    let label1 = Label::primary((), span.clone())
+                        .with_message("this string must be closed on the same line that it starts.");
+
+                    let label2 = Label::secondary((), span.start..span.start + 1)
+                        .with_message("no matching closing quote for this quote.");
+
+                    let diagnostic = Diagnostic::error()
+                        .with_code("E0001")
+                        .with_labels(vec![label1, label2])
+                        .with_message("unclosed string.");
+
+                    self.diagnostics.push(diagnostic);
+                }
+
+                if expect != Token::String {
+                    let label = Label::primary((), span).with_message("unexpected string.");
+
+                    let diagnostic = Diagnostic::error()
+                        .with_code("E0002")
+                        .with_labels(vec![label])
+                        .with_message(if let Some(s) = expect.as_string() {
+                            format!("expected '{}', found string.", s)
+                        } else {
+                            if let Some(s) = expect.as_name() {
+                                format!("expected {}, found string.", s)
+                            } else {
+                                "unexpected string".into()
+                            }
+                        });
+
+                    self.diagnostics.push(diagnostic);
+                }
+            }
+
+            self.successful = false;
+
+            return false;
+        }
+
         false
     }
 }
