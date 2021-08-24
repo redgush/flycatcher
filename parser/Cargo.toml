@@ -7,4 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+codespan-reporting = "0.11.1"
 flycatcher-ast = { path = "../ast" }
+flycatcher-lexer = { path = "../lexer" }
