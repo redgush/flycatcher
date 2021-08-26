@@ -153,6 +153,27 @@ pub enum Token {
     #[token("priv")]
     PrivKeyword,
 
+    /// The `if` keyword, which is used in logical operations.
+    /// 
+    /// ```flycatcher
+    /// if expression {
+    ///     // ...
+    /// } else {
+    ///     // ...
+    /// }
+    /// ```
+    #[token("if")]
+    IfKeyword,
+
+    /// The `else` keyword.
+    #[token("else")]
+    ElseKeyword,
+
+    /// The `while` keyword, which is somewhat similar to the `if` keyword.  It repeats a block of code
+    /// until the provided expression is equal to false.
+    #[token("while")]
+    WhileKeyword,
+
     /// A number literal in Flycatcher may be a floating point number, or it may be an integer.  This
     /// token also matches an optional exponent/mantissa, like so:
     ///
