@@ -94,7 +94,7 @@ impl Opcode {
         Some(match self {
             Self::Subscript => 100,
             Self::Call => 100,
-            _ => return None
+            _ => return None,
         })
     }
 
@@ -103,7 +103,7 @@ impl Opcode {
         Some(match self {
             Self::Plus => 97,
             Self::Minus => 97,
-            _ => return None
+            _ => return None,
         })
     }
 }
