@@ -3,6 +3,7 @@ use std::ops::Range;
 
 /// Provides "metadata" about an AST item.  This includes where the AST item was found in a source file,
 /// the document comments before it, whether there's a semicolon after it, and so on.
+#[derive(Clone)]
 pub struct AstMeta {
     /// The absolute indexes where the AST item starts and ends in the source file.
     pub range: Range<usize>,
@@ -62,5 +63,11 @@ impl AstMeta {
     /// Sets the value of `parenthesis` to `true`.
     pub fn parenthesis(&mut self) {
         self.parenthesis = true;
+    }
+}
+
+impl std::fmt::Debug for AstMeta {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.item.fmt(f)
     }
 }
