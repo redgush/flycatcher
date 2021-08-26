@@ -434,25 +434,6 @@ impl<'a> Parser<'a> {
 
                 self.context.diagnostics.push(diagnostic);
                 self.successful = false;
-            } else {
-                let label = Label::primary((), self.lexer.span())
-                    .with_message(format!("unexpected '{}'", self.lexer.slice()));
-
-                let diagnostic = Diagnostic::error()
-                    .with_code("E0006")
-                    .with_labels(vec![label])
-                    .with_message(if let Some(s) = expect.as_string() {
-                        format!("expected '{}', found '{}'.", s, self.lexer.slice())
-                    } else {
-                        if let Some(s) = expect.as_name() {
-                            format!("expected {}, found '{}'.", s, self.lexer.slice())
-                        } else {
-                            format!("unexpected '{}'", self.lexer.slice())
-                        }
-                    });
-
-                self.context.diagnostics.push(diagnostic);
-                self.successful = false;
             }
 
             return false;
@@ -460,6 +441,25 @@ impl<'a> Parser<'a> {
 
         // We default to false and return since a matching token is optional.
         false
+    }
+
+    /// Iterates over the skipped tokens such as whitespaces and line breaks, peeking at the token that
+    /// is found.
+    fn peek_token(&mut self) -> Option<Token> {
+        loop {
+            if let Some(t) = self.lexer.peek() {
+                // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ We have found a token.  If it's a whitespace, line break
+                //                             or comment, we should skip over it and continue the loop.
+                if t == Token::Whitespace || t == Token::Linebreak || t == Token::DocComment {
+                    self.lexer.next();
+                    continue;
+                } else {
+                    return Some(t);
+                }
+            } else {
+                return None;
+            }
+        }
     }
 
     /// Parses a "primary" token.  Primary tokens are identifiers, numbers, booleans, etc. and may be
@@ -541,5 +541,238 @@ impl<'a> Parser<'a> {
 
         // Default to a None value.
         None
+    }
+
+    /// Parses a binary expression, if possible.  This function uses a basic (yet efficient) Pratt
+    /// parser.
+    pub fn parse_binary(&mut self, min: usize) -> Option<AstMeta> {
+        // This function doesn't use the `eat` methods for higher efficiency.
+
+        // This is the left side of the operation, which is determined below.
+        let mut left;
+
+        // First, we see if the next token is a prefix, if so, we use a recursive call to `parse_binary`
+        // and use that as the left side of the operation.  Otherwise, we use the return value of
+        // `parse_primary` as the left side of the operation.
+        //               ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+        if let Some(l) = self.peek_token() {
+            // ↑↑↑↑↑↑↑↑↑↑↑↑↑ Here, we know that there is a token left in the lexer.  We need to see if
+            //               it is a prefix operator.
+
+            if let Some(o) = Opcode::from_token(l.clone()) {
+                //           ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ There *is* an operator that matches this token, but is
+                //                              it a prefix operator?  Let's find out with the
+                //                              `prefix_precedence` method of `o`.
+
+                if let Some(prec) = o.prefix_precedence() {
+                    // The token was a prefix!  We need to get the operand of the prefix and use it as
+                    // the left side of the operation.
+
+                    self.lexer.next(); // iterate to the prefix
+                    let start = self.lexer.span().start; // this is the starting character of the prefix
+
+                    // Here, we recieve the operand of the prefix with the recursive call to
+                    // `parse_binary`.  We use the `prec` variable as the minimum binding power for the
+                    // operand.  For example, this allows `-my_iden.my_other_iden + 2` since the
+                    // binding power of `.` is greater than that of the `-` prefix.  The tree generated
+                    // from that looks like this:
+                    //
+                    //     (+
+                    //         (-  // the `-` prefix
+                    //             (.
+                    //                 my_iden,
+                    //                 my_other_iden
+                    //             )
+                    //         ),
+                    //         2
+                    //     )
+                    //
+                    //                 ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+                    if let Some(rhs) = self.parse_binary(prec) {
+                        left = AstMeta::new(
+                            start..self.lexer.span().end,
+                            Ast::UnaryExpr(o, rhs.into_box()),
+                        )
+                    } else {
+                        // There was no operand for the prefix operator, which means an error probably
+                        // occurred.
+
+                        if self.successful {
+                            // No error was thrown, we should throw an error here.
+                            let label = Label::primary((), self.lexer.span()).with_message(format!(
+                                "expected expression [here] after '{}' operator",
+                                l.as_string().unwrap()
+                            ));
+
+                            let diagnostic = Diagnostic::error()
+                                .with_code("E0008")
+                                .with_labels(vec![label])
+                                .with_message("expected expression after operator");
+
+                            self.context.diagnostics.push(diagnostic);
+                            self.successful = false;
+                        }
+
+                        // Return None, because whether the parser was successful or not, an error
+                        // occurred.
+                        return None;
+                    }
+                } else {
+                    // The token isn't a prefix operator, so we should just use the value of a call to
+                    // `parse_primary`.
+                    if let Some(t) = self.parse_primary() {
+                        left = t;
+                    } else {
+                        // The file must have ended, or an error occurred.
+                        return None;
+                    }
+                }
+            } else {
+                // The token isn't a prefix operator, so we should just use the value of a call to
+                // `parse_primary`.
+                if let Some(t) = self.parse_primary() {
+                    left = t;
+                } else {
+                    // The file must have ended, or an error occurred.
+                    return None;
+                }
+            }
+        } else {
+            // No tokens are left in the lexer, so we should just return None instead of starting a
+            // loop.
+            return None;
+        }
+
+        loop {
+            if let Some(next_op) = self.peek_token() {
+                if let Some(op) = Opcode::from_token(next_op.clone()) {
+                    // There is an operator in the token stream, now let's see what kind of operator it
+                    // is.
+
+                    if let Some(prec) = op.postfix_precedence() {
+                        // If the precedence of this postfix operator is less than the minimum
+                        // precedence, we should break the loop.
+                        // ↓↓↓↓↓↓↓↓↓↓
+                        if prec < min {
+                            break;
+                        }
+
+                        // Iterate over the operator, so we can get a possible value of the operator,
+                        // if the operator is a subscript or call operator.
+                        self.lexer.next();
+
+                        if op == Opcode::Subscript {
+                            // We need to get the value of the subscript (if any), like so:
+                            if let Some(t) = self.peek_token() {
+                                if t == Token::RBrack {
+                                    self.lexer.next();
+
+                                    // There is no value in the subscript.
+                                    left = AstMeta::new(
+                                        left.range.start..self.lexer.span().end,
+                                        Ast::SubscriptExpr(left.into_box(), None)
+                                    );
+                                } else {
+                                    // The subscript has a right operand, so we can use a recursive call to recieve
+                                    // the operand.
+                                    if let Some(right) = self.parse_expression() {
+                                        // eat the closing bracket
+                                        self.eat(Token::RBrack, false);
+
+                                        left = AstMeta::new(
+                                            left.range.start..self.lexer.span().end,
+                                            Ast::SubscriptExpr(left.into_box(), Some(
+                                                right.into_box()
+                                            ))
+                                        );
+                                    } else {
+                                        if self.successful {
+                                            let label = Label::primary((), self.lexer.span())
+                                                .with_message("expected a ']' here");
+
+                                            let diagnostic = Diagnostic::error()
+                                                .with_code("E0009")
+                                                .with_labels(vec![label])
+                                                .with_message("expected expression after operator");
+
+                                            self.context.diagnostics.push(diagnostic);
+                                            self.successful = false;
+                                            return None;
+                                        }
+                                        return None;
+                                    }
+                                }
+                            } else {
+                                // It is guaranteed that there is no closing `]` here, so we must throw
+                                // an error stating this.
+                                // No error was thrown, we should throw an error here.
+                                let label = Label::primary((), self.lexer.span())
+                                    .with_message("expected a ']' here");
+
+                                let diagnostic = Diagnostic::error()
+                                    .with_code("E0009")
+                                    .with_labels(vec![label])
+                                    .with_message("expected expression after operator");
+
+                                self.context.diagnostics.push(diagnostic);
+                                self.successful = false;
+                                return None;
+                            }
+                        }
+                    } else if let Some((lp, rp)) = op.infix_precedence() {
+                        if lp < min {
+                            break;
+                        }
+                        self.lexer.next();
+
+                        if let Some(rhs) = self.parse_binary(rp) {
+                            left = AstMeta::new(
+                                left.range.start..self.lexer.span().end,
+                                Ast::BinaryExpr(
+                                    op,
+                                    left.into_box(),
+                                    rhs.into_box()
+                                )
+                            );
+                        } else {
+                            // We expected a right hand side operand after the operator, but there was
+                            // nothing.
+                            if self.successful {
+                                // No error was thrown, we should throw an error here.
+                                let label = Label::primary((), self.lexer.span()).with_message(format!(
+                                    "expected expression [here] after '{}' operator",
+                                    next_op.as_string().unwrap()
+                                ));
+
+                                let diagnostic = Diagnostic::error()
+                                    .with_code("E0008")
+                                    .with_labels(vec![label])
+                                    .with_message("expected expression after operator");
+
+                                self.context.diagnostics.push(diagnostic);
+                                self.successful = false;
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                } else {
+                    // We assume the expression ended because there was not an operator.
+                    break;
+                }
+            } else {
+                // No tokens left, break the loop.
+                break;
+            }
+        }
+
+        // Now that we've finished the main loop, we can return the left hand statement, which may or
+        // may not have been modified by an expression.
+        Some(left)
+    }
+
+    /// Parses a single expression at the current index of the lexer.
+    pub fn parse_expression(&mut self) -> Option<AstMeta> {
+        self.parse_binary(0)
     }
 }
