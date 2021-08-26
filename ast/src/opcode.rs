@@ -3,7 +3,14 @@ use flycatcher_lexer::Token;
 /// A list of opcodes that may be used in binary expressions.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Opcode {
-    Comma,
+    /// The `Period` is used for member accessing, such as `my_variable.my_access`
+    Period,
+
+    /// The `Subscript` operator is used for indexing, such as `my_variable[0]`
+    Subscript,
+
+    /// `Call` operators are `()` argument lists after a name, such as `my_function()`.
+    Call,
     GreaterGreater,
     LessLess,
     EqualsEquals,
@@ -24,13 +31,16 @@ pub enum Opcode {
     Asterisk,
     Slash,
     Percent,
+    Exclamation,
 }
 
 impl Opcode {
     /// Returns the opcode associated with a token, if any.
     pub fn from_token(tok: Token) -> Option<Opcode> {
         match tok {
-            Token::Comma => Some(Opcode::Comma),
+            Token::Period => Some(Opcode::Period),
+            Token::LBrack => Some(Opcode::Subscript),
+            Token::LParen => Some(Opcode::Call),
             Token::GreaterGreater => Some(Opcode::GreaterGreater),
             Token::LessLess => Some(Opcode::LessLess),
             Token::EqualsEquals => Some(Opcode::EqualsEquals),
@@ -52,29 +62,48 @@ impl Opcode {
     }
 
     /// Calculates the precedence of this binary operator.
-    pub fn precedence(&self) -> usize {
-        match self {
-            Self::Not => 99,
-            Self::Asterisk => 98,
-            Self::Slash => 98,
-            Self::Percent => 98,
+    pub fn infix_precedence(&self) -> Option<(usize, usize)> {
+        Some(match self {
+            Self::Period => (100, 99),
+            Self::Not => (93, 94),
+            Self::Asterisk => (91, 92),
+            Self::Slash => (91, 92),
+            Self::Percent => (91, 92),
+            Self::Plus => (89, 90),
+            Self::Minus => (89, 90),
+            Self::GreaterGreater => (87, 88),
+            Self::LessLess => (87, 88),
+            Self::Greater => (85, 86),
+            Self::Less => (85, 86),
+            Self::GreaterEquals => (85, 86),
+            Self::LessEquals => (85, 86),
+            Self::EqualsEquals => (83, 84),
+            Self::ExclamationEquals => (83, 84),
+            Self::And => (81, 82),
+            Self::Caret => (79, 80),
+            Self::Or => (77, 78),
+            Self::AndAnd => (75, 76),
+            Self::OrOr => (73, 74),
+            Self::Equals => (71, 72),
+            _ => return None,
+        })
+    }
+
+    /// Returns the postfix binding power of this operator, if applicable.
+    pub fn postfix_precedence(&self) -> Option<usize> {
+        Some(match self {
+            Self::Subscript => 100,
+            Self::Call => 100,
+            _ => return None
+        })
+    }
+
+    /// Returns the prefix binding power of this operator, if applicable.
+    pub fn prefix_precedence(&self) -> Option<usize> {
+        Some(match self {
             Self::Plus => 97,
             Self::Minus => 97,
-            Self::GreaterGreater => 96,
-            Self::LessLess => 96,
-            Self::Greater => 95,
-            Self::Less => 95,
-            Self::GreaterEquals => 95,
-            Self::LessEquals => 95,
-            Self::EqualsEquals => 94,
-            Self::ExclamationEquals => 94,
-            Self::And => 93,
-            Self::Caret => 92,
-            Self::Or => 91,
-            Self::AndAnd => 90,
-            Self::OrOr => 89,
-            Self::Equals => 88,
-            Self::Comma => 87,
-        }
+            _ => return None
+        })
     }
 }

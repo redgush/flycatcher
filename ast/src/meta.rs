@@ -43,6 +43,11 @@ impl AstMeta {
         })
     }
 
+    /// (Destructively) converts this AST metadata struct into a boxed AST metadata struct.
+    pub fn into_box(self) -> Box<Self> {
+        Box::new(self)
+    }
+
     /// Sets the list of comments for this AST item.
     pub fn with_comments(mut self, comments: Vec<String>) -> Self {
         self.comments = comments;

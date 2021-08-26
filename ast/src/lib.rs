@@ -21,4 +21,7 @@ pub enum Ast {
 
     /// A floating point number literal, like `42.0` or `4.2e1`.
     FloatLiteral(f64),
+
+    /// A unary expression, (or a prefix expression) such as `-20`.
+    UnaryExpr(Opcode, Box<AstMeta>),
 }
