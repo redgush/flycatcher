@@ -12,6 +12,7 @@ use codespan_reporting::term::{
 /// A context used for keeping track of diagnostics with Flycatcher.  This struct also provides
 /// functionality for emitting such diagnostics to the terminal, as well as configuring how they look
 /// via the `codespan-reporting` crate.
+#[derive(Clone)]
 pub struct Context<'a> {
     /// The configuration structure provided by `codespan-reporting` that customizes how diagnostic
     /// messages may be displayed in the console.  By default, it's configured to a style similar to
