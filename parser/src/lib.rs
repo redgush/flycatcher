@@ -481,13 +481,13 @@ impl<'a> Parser<'a> {
                     break;
                 }
 
-                if state == 0 {
+                if state == 1 {
                     self.eat(Token::Comma, false);
-                    state = 1;
+                    state = 0;
                 } else if state == 0 {
                     if let Some(val) = self.parse_expression() {
                         items.push(val);
-                        state = 0;
+                        state = 1;
                     } else {
                         if self.successful {
                             let label = Label::primary((), self.lexer.span()).with_message(format!(
@@ -527,6 +527,8 @@ impl<'a> Parser<'a> {
 
                 self.context.diagnostics.push(diagnostic);
                 self.successful = false;
+
+                return None;
             }
         }
 
@@ -814,7 +816,7 @@ impl<'a> Parser<'a> {
                         Ast::ArrayLiteral(t),
                     ));
                 }
-                
+
                 return None;
             } else {
                 self.lexer.next();
@@ -1006,6 +1008,26 @@ impl<'a> Parser<'a> {
 
                                 self.context.diagnostics.push(diagnostic);
                                 self.successful = false;
+                                return None;
+                            }
+                        } else if op == Opcode::Call {
+                            // It's a call operator!  I've actually been kind of excited to implement
+                            // this because this is where the actual functionality comes in (haha, get
+                            // it?  *function*ality?  Yeah).
+
+                            // This parses the argument list, within the `()`.
+                            //               ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+                            if let Some(r) = self.parse_list(Token::RParen) {
+                                left = AstMeta::new(
+                                    left.range.start..self.lexer.span().end,
+                                    Ast::CallExpr(
+                                        left.into_box(),
+                                        r
+                                    )
+                                );
+                            } else {
+                                // I'm pretty sure that the list parser should throw an error in the case
+                                // of something going wrong, so we shouldn't have to do that here.
                                 return None;
                             }
                         }
