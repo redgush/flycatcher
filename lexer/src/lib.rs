@@ -14,6 +14,7 @@ pub use token::Token;
 
 /// A wrapper around the logos lexer, allowing for ease of peeking and the ability to catch errors while
 /// lexing.
+#[derive(Clone)]
 pub struct Lexer<'a> {
     /// This is the string that is being tokenized.  Not only is this used to find tokens, but it is
     /// also used in diagnostic messages to display what went wrong & where.

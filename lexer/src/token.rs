@@ -242,11 +242,11 @@ pub enum Token {
     Comment,
 
     /// A line break character that matches `\n` and `\r`.
-    #[regex("[\n\r]+")]
+    #[regex("[\n\r]+", logos::skip)]
     Linebreak,
 
     /// Matches any whitespace that isn't a line break, such as tabs and normal white spaces.
-    #[regex("\\s+", priority = 2)]
+    #[regex("\\s+", logos::skip, priority = 2)]
     Whitespace,
 
     /// `Invalid` is a token provided by Logos, which is just a token that doesn't match any other
