@@ -23,6 +23,13 @@ pub enum Ast {
     /// A floating point number literal, like `42.0` or `4.2e1`.
     FloatLiteral(f64),
 
+    /// An array literal, using the `[]` syntax:
+    /// 
+    /// ```flycatcher
+    /// [1, 2, 3]
+    /// ```
+    ArrayLiteral(Vec<AstMeta>),
+
     /// A unary expression, (or a prefix expression) such as `-20`.
     UnaryExpr(Opcode, Box<AstMeta>),
 
@@ -50,6 +57,14 @@ pub enum Ast {
         /// }
         /// ```
         branches: Vec<AstMeta>,
+    },
+
+    WhileStmnt {
+        /// The expression to evaluate.
+        expr: Box<AstMeta>,
+
+        /// A list of child statements in the block after the expression.
+        block: Vec<AstMeta>,
     },
 
     /// A block statement with a list of child statements.

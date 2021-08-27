@@ -463,6 +463,76 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Parses a list until the specified closing token is found.
+    fn parse_list(&mut self, close: Token) -> Option<Vec<AstMeta>> {
+        // This is the "state" of the parser.  Basically, what the parser is currently expecting.  The
+        // parser may expect a value (0) or a delimiter ',' (1).
+        //  ↓↓↓↓↓↓↓↓↓
+        let mut state = 0;
+
+        // This list of items to return.
+        let mut items = vec![];
+
+        loop {
+            if let Some(tok) = self.peek_token() {
+                if tok == close {
+                    // End the loop, we've found the closing token.
+                    self.lexer.next();
+                    break;
+                }
+
+                if state == 0 {
+                    self.eat(Token::Comma, false);
+                    state = 1;
+                } else if state == 0 {
+                    if let Some(val) = self.parse_expression() {
+                        items.push(val);
+                        state = 0;
+                    } else {
+                        if self.successful {
+                            let label = Label::primary((), self.lexer.span()).with_message(format!(
+                                "expected a closing '{}', found end of file",
+                                close.as_name().unwrap()
+                            ));
+            
+                            let diagnostic = Diagnostic::error()
+                                .with_code("E0014")
+                                .with_labels(vec![label])
+                                .with_message(format!(
+                                    "expected a closing '{}'",
+                                    close.as_name().unwrap()
+                                ));
+            
+                            self.context.diagnostics.push(diagnostic);
+                        }
+
+                        return None;
+                    }
+                }
+            } else {
+                // The list must not have ended yet (since we are still in the loop), so we have to
+                // throw an error here.
+                let label = Label::primary((), self.lexer.span()).with_message(format!(
+                    "expected a closing '{}', found end of file",
+                    close.as_name().unwrap()
+                ));
+
+                let diagnostic = Diagnostic::error()
+                    .with_code("E0014")
+                    .with_labels(vec![label])
+                    .with_message(format!(
+                        "expected a closing '{}'",
+                        close.as_name().unwrap()
+                    ));
+
+                self.context.diagnostics.push(diagnostic);
+                self.successful = false;
+            }
+        }
+
+        Some(items)
+    }
+
     /// Parses a "primary" token.  Primary tokens are identifiers, numbers, booleans, etc. and may be
     /// used in any expression.
     fn parse_primary(&mut self) -> Option<AstMeta> {
@@ -539,6 +609,213 @@ impl<'a> Parser<'a> {
                         // We can fall through because be default, this function returns `None`.
                     }
                 }
+            } else if tok == Token::IfKeyword {
+                // The expression is an `if` operation.
+                //
+                // First of all, we need to find the expression that the if statement uses.
+
+                let start = self.lexer.span().start;
+                self.lexer.next();
+
+                let ifblock;
+                let expr;
+
+                if let Some(e) = self.parse_expression() {
+                    if self.eat(Token::LCurly, false) {
+                        if let Some(block) = self.parse_block() {
+                            ifblock = block;
+                            expr = e;
+                        } else {
+                            // `parse_block()` should have thrown an error had anything gone wrong.
+                            return None;
+                        }
+                    } else {
+                        return None;
+                    }
+                } else {
+                    if self.successful {
+                        // No expression was found in the `if` statement, so we must throw an error, no
+                        // error was thrown, we should throw an error here.
+                        let label = Label::primary((), self.lexer.span())
+                            .with_message("expected expression in 'if' statement (here).");
+
+                        let diagnostic = Diagnostic::error()
+                            .with_code("E0010")
+                            .with_labels(vec![label])
+                            .with_message("expected expression in 'if' statement.");
+
+                        self.context.diagnostics.push(diagnostic);
+                        self.successful = false;
+                    }
+
+                    return None;
+                }
+
+                let mut branches = vec![];
+
+                // Now, we need to parse the other branches of the if statement.  We do this by looping
+                // until there is no more `else if` or `else` statements at the end of a block.
+                loop {
+                    if let Some(tok) = self.peek_token() {
+                        if tok == Token::ElseKeyword {
+                            // It could be either an `else` statement or an `else if` statement.  We
+                            // have yet to check whether there is an `if`
+                            // after the `else` keyword.
+
+                            let span = self.lexer.span();
+                            self.lexer.next();
+
+                            if let Some(tok) = self.peek_token() {
+                                if tok == Token::IfKeyword {
+                                    // It's an `else if` statement.
+
+                                    self.lexer.next();
+
+                                    println!("TESTasdfasdfa");
+                                    if let Some(e) = self.parse_expression() {
+                                        if self.eat(Token::LCurly, false) {
+                                            if let Some(block) = self.parse_block() {
+                                                // Push the `else if` statement to the branches vector.
+                                                branches.push(AstMeta::new(
+                                                    span.start..self.lexer.span().end,
+                                                    Ast::IfStmnt {
+                                                        block: block,
+                                                        branches: vec![],
+                                                        expr: e.into_box(),
+                                                    },
+                                                ))
+                                            } else {
+                                                // `parse_block()` should have thrown an error had
+                                                // anything
+                                                // gone wrong.
+                                                return None;
+                                            }
+                                        } else {
+                                            return None;
+                                        }
+                                    } else {
+                                        if self.successful {
+                                            // No expression was found in the `if` statement, so we must
+                                            // throw an error, no
+                                            // error was thrown, we should throw an error here.
+                                            let label = Label::primary((), self.lexer.span())
+                                                .with_message(
+                                                    "expected expression in 'if' statement (here).",
+                                                );
+
+                                            let diagnostic = Diagnostic::error()
+                                                .with_code("E0010")
+                                                .with_labels(vec![label])
+                                                .with_message("expected expression in 'if' statement.");
+
+                                            self.context.diagnostics.push(diagnostic);
+                                            self.successful = false;
+                                        }
+
+                                        return None;
+                                    }
+                                } else if tok == Token::LCurly {
+                                    // It's an `else` statement
+                                    self.lexer.next();
+                                    if let Some(block) = self.parse_block() {
+                                        branches.push(AstMeta::new(
+                                            span.start..self.lexer.span().end,
+                                            Ast::Block(block),
+                                        ));
+                                    } else {
+                                        return None;
+                                    }
+                                }
+                            } else {
+                                // There is no `if` keyword, and there isn't a block either.  This is
+                                // indeed a syntax error.
+                                let label = Label::primary((), span).with_message(
+                                    "expected one of '{' or 'if', found the end of the file.",
+                                );
+
+                                let diagnostic = Diagnostic::error()
+                                    .with_code("E0012")
+                                    .with_labels(vec![label])
+                                    .with_message("expected '{' or 'if'");
+
+                                self.context.diagnostics.push(diagnostic);
+                                self.successful = false;
+
+                                return None;
+                            }
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                return Some(AstMeta::new(
+                    start..self.lexer.span().end,
+                    Ast::IfStmnt {
+                        expr: expr.into_box(),
+                        block: ifblock,
+                        branches,
+                    },
+                ));
+            } else if tok == Token::WhileKeyword {
+                let start = self.lexer.span().start;
+                self.lexer.next();
+
+                let whileblock;
+                let expr;
+
+                if let Some(e) = self.parse_expression() {
+                    if self.eat(Token::LCurly, false) {
+                        if let Some(block) = self.parse_block() {
+                            whileblock = block;
+                            expr = e;
+                        } else {
+                            // `parse_block()` should have thrown an error had anything gone wrong.
+                            return None;
+                        }
+                    } else {
+                        return None;
+                    }
+                } else {
+                    if self.successful {
+                        // No expression was found in the `if` statement, so we must throw an error, no
+                        // error was thrown, we should throw an error here.
+                        let label = Label::primary((), self.lexer.span())
+                            .with_message("expected expression in 'if' statement (here).");
+
+                        let diagnostic = Diagnostic::error()
+                            .with_code("E0010")
+                            .with_labels(vec![label])
+                            .with_message("expected expression in 'if' statement.");
+
+                        self.context.diagnostics.push(diagnostic);
+                        self.successful = false;
+                    }
+
+                    return None;
+                }
+
+                return Some(AstMeta::new(
+                    start..self.lexer.span().end,
+                    Ast::WhileStmnt {
+                        expr: expr.into_box(),
+                        block: whileblock,
+                    },
+                ));
+            } else if tok == Token::LBrack {
+                self.lexer.next();
+                let start = self.lexer.span().start;
+
+                if let Some(t) = self.parse_list(Token::RBrack) {
+                    return Some(AstMeta::new(
+                        start..self.lexer.span().end,
+                        Ast::ArrayLiteral(t),
+                    ));
+                }
+                
+                return None;
             } else {
                 self.lexer.next();
                 let label = Label::primary((), self.lexer.span())
@@ -796,156 +1073,7 @@ impl<'a> Parser<'a> {
     /// Parses a single expression at the current index of the lexer.
     pub fn parse_expression(&mut self) -> Option<AstMeta> {
         // self.parse_binary(0)
-        if let Some(tok) = self.peek_token() {
-            if tok == Token::IfKeyword {
-                // The expression is an `if` operation.
-                //
-                // First of all, we need to find the expression that the if statement uses.
-    
-                let start = self.lexer.span().start;
-                self.lexer.next();
-    
-                let ifblock;
-                let expr;
-    
-                if let Some(e) = self.parse_expression() {
-                    if self.eat(Token::LCurly, false) {
-                        if let Some(block) = self.parse_block() {
-                            ifblock = block;
-                            expr = e;
-                        } else {
-                            // `parse_block()` should have thrown an error had anything gone wrong.
-                            return None;
-                        }
-                    } else {
-                        return None;
-                    }
-                } else {
-                    if self.successful {
-                        // No expression was found in the `if` statement, so we must throw an error, no
-                        // error was thrown, we should throw an error here.
-                        let label = Label::primary((), self.lexer.span())
-                            .with_message("expected expression in 'if' statement (here).");
-    
-                        let diagnostic = Diagnostic::error()
-                            .with_code("E0010")
-                            .with_labels(vec![label])
-                            .with_message("expected expression in 'if' statement.");
-    
-                        self.context.diagnostics.push(diagnostic);
-                        self.successful = false;
-                    }
-    
-                    return None;
-                }
-    
-                let mut branches = vec![];
-    
-                // Now, we need to parse the other branches of the if statement.  We do this by looping
-                // until there is no more `else if` or `else` statements at the end of a block.
-                loop {
-                    if let Some(tok) = self.peek_token() {
-                        if tok == Token::ElseKeyword {
-                            // It could be either an `else` statement or an `else if` statement.  We have
-                            // yet to check whether there is an `if` after the `else` keyword.
-    
-                            let span = self.lexer.span();
-                            self.lexer.next();
-    
-                            if let Some(tok) = self.peek_token() {
-                                if tok == Token::IfKeyword {
-                                    // It's an `else if` statement.
-    
-                                    self.lexer.next();
-    
-                                    println!("TESTasdfasdfa");
-                                    if let Some(e) = self.parse_expression() {
-                                        if self.eat(Token::LCurly, false) {
-                                            if let Some(block) = self.parse_block() {
-                                                // Push the `else if` statement to the branches vector.
-                                                branches.push(AstMeta::new(
-                                                    span.start..self.lexer.span().end,
-                                                    Ast::IfStmnt {
-                                                        block: block,
-                                                        branches: vec![],
-                                                        expr: e.into_box(),
-                                                    },
-                                                ))
-                                            } else {
-                                                // `parse_block()` should have thrown an error had anything
-                                                // gone wrong.
-                                                return None;
-                                            }
-                                        } else {
-                                            return None;
-                                        }
-                                    } else {
-                                        if self.successful {
-                                            // No expression was found in the `if` statement, so we must
-                                            // throw an error, no
-                                            // error was thrown, we should throw an error here.
-                                            let label = Label::primary((), self.lexer.span()).with_message(
-                                                "expected expression in 'if' statement (here).",
-                                            );
-    
-                                            let diagnostic = Diagnostic::error()
-                                                .with_code("E0010")
-                                                .with_labels(vec![label])
-                                                .with_message("expected expression in 'if' statement.");
-    
-                                            self.context.diagnostics.push(diagnostic);
-                                            self.successful = false;
-                                        }
-    
-                                        return None;
-                                    }
-                                } else if tok == Token::LCurly {
-                                    // It's an `else` statement
-                                    self.lexer.next();
-                                    if let Some(block) = self.parse_block() {
-                                        branches.push(AstMeta::new(
-                                            span.start..self.lexer.span().end,
-                                            Ast::Block(block),
-                                        ));
-                                    } else {
-                                        return None;
-                                    }
-                                }
-                            } else {
-                                // There is no `if` keyword, and there isn't a block either.  This is indeed
-                                // a syntax error.
-                                let label = Label::primary((), span).with_message(
-                                    "expected one of '{' or 'if', found the end of the file.",
-                                );
-    
-                                let diagnostic = Diagnostic::error()
-                                    .with_code("E0012")
-                                    .with_labels(vec![label])
-                                    .with_message("expected '{' or 'if'");
-    
-                                self.context.diagnostics.push(diagnostic);
-                                self.successful = false;
-    
-                                return None;
-                            }
-                        } else {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-    
-                return Some(AstMeta::new(
-                    start..self.lexer.span().end,
-                    Ast::IfStmnt {
-                        expr: expr.into_box(),
-                        block: ifblock,
-                        branches,
-                    },
-                ));
-            }
-        }
+        if let Some(tok) = self.peek_token() {}
 
         self.parse_binary(0)
     }
@@ -963,6 +1091,66 @@ impl<'a> Parser<'a> {
                 if tok == Token::Semicolon {
                     self.lexer.next();
                     continue;
+                }
+
+                if let Some(mut expr) = self.parse_expression() {
+                    if let Some(tok2) = self.peek_token() {
+                        if tok2 == Token::Semicolon {
+                            self.lexer.next();
+                            expr.semicolon();
+                        }
+                    }
+
+                    ast.push(expr);
+                } else {
+                    if self.successful {
+                        // End of file found before the closing curly bracket.
+                        self.lexer.next();
+
+                        let label = Label::primary((), self.lexer.span())
+                            .with_message("expected a closing '}' here.");
+
+                        let diagnostic = Diagnostic::error()
+                            .with_code("E0011")
+                            .with_labels(vec![label])
+                            .with_message("unclosed block statement.");
+
+                        self.context.diagnostics.push(diagnostic);
+                        self.successful = false;
+                    }
+
+                    return None;
+                }
+            } else {
+                // The file ended; meaning no closing bracket was found.
+                self.lexer.next();
+
+                let label =
+                    Label::primary((), self.lexer.span()).with_message("expected a closing '}' here.");
+
+                let diagnostic = Diagnostic::error()
+                    .with_code("E0011")
+                    .with_labels(vec![label])
+                    .with_message("unclosed block statement.");
+
+                self.context.diagnostics.push(diagnostic);
+                self.successful = false;
+                return None;
+            }
+        }
+
+        Some(ast)
+    }
+
+    /// Parses all items in the source file.
+    pub fn parse(&mut self) -> Option<Vec<AstMeta>> {
+        let mut ast = vec![];
+
+        loop {
+            if let Some(tok) = self.peek_token() {
+                if tok == Token::RCurly {
+                    self.lexer.next();
+                    break;
                 }
 
                 if let Some(mut expr) = self.parse_expression() {
