@@ -32,4 +32,26 @@ pub enum Ast {
     /// A Subscript expression, such as `my_iden[subscript]`.  The first object is the subject of the
     /// expression, the second object is the value inside of the `[]`, if any.
     SubscriptExpr(Box<AstMeta>, Option<Box<AstMeta>>),
+
+    /// An `if` statement with any amount of branches.
+    IfStmnt {
+        /// The expression that the `if` statement evaluates.
+        expr: Box<AstMeta>,
+
+        /// The code block in the `if` statement.  It is wrapped in `{}`.
+        block: Vec<AstMeta>,
+
+        /// The list of branches in the `if` statement, such as:
+        ///
+        /// ```flycatcher
+        /// if expr {
+        /// } else if expr { // branch
+        /// } else { // branch
+        /// }
+        /// ```
+        branches: Vec<AstMeta>,
+    },
+
+    /// A block statement with a list of child statements.
+    Block(Vec<AstMeta>),
 }
