@@ -93,7 +93,7 @@ impl Opcode {
     pub fn postfix_precedence(&self) -> Option<usize> {
         Some(match self {
             Self::Subscript => 100,
-            Self::Call => 100,
+            Self::Call => 98,
             _ => return None,
         })
     }

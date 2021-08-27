@@ -40,6 +40,13 @@ pub enum Ast {
     /// expression, the second object is the value inside of the `[]`, if any.
     SubscriptExpr(Box<AstMeta>, Option<Box<AstMeta>>),
 
+    /// A function call statement, using the call operator:
+    /// 
+    /// ```flycatcher
+    /// my_function();
+    /// ```
+    CallExpr(Box<AstMeta>, Vec<AstMeta>),
+
     /// An `if` statement with any amount of branches.
     IfStmnt {
         /// The expression that the `if` statement evaluates.
