@@ -4,6 +4,10 @@ use logos::Logos;
 /// making this the lexer itself, not just a mere list of tokens.
 #[derive(Clone, Debug, Logos, PartialEq)]
 pub enum Token {
+    /// A semicolon token. `;`
+    #[token(";")]
+    Semicolon,
+
     /// A left curly bracket.  `{`.
     #[token("{")]
     LCurly,
