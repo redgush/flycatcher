@@ -44,6 +44,7 @@ impl Opcode {
             Token::GreaterGreater => Some(Opcode::GreaterGreater),
             Token::LessLess => Some(Opcode::LessLess),
             Token::EqualsEquals => Some(Opcode::EqualsEquals),
+            Token::Exclamation => Some(Opcode::Exclamation),
             Token::ExclamationEquals => Some(Opcode::ExclamationEquals),
             Token::GreaterEquals => Some(Opcode::GreaterEquals),
             Token::LessEquals => Some(Opcode::LessEquals),
@@ -101,6 +102,7 @@ impl Opcode {
     /// Returns the prefix binding power of this operator, if applicable.
     pub fn prefix_precedence(&self) -> Option<usize> {
         Some(match self {
+            Self::Exclamation => 98,
             Self::Plus => 97,
             Self::Minus => 97,
             _ => return None,
