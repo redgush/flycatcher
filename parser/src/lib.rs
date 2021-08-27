@@ -465,77 +465,91 @@ impl<'a> Parser<'a> {
     /// Parses a "primary" token.  Primary tokens are identifiers, numbers, booleans, etc. and may be
     /// used in any expression.
     fn parse_primary(&mut self) -> Option<AstMeta> {
-        //  1. We're expecting an *optional* identifier token.  It returns a boolean of whether or not
-        //     the token was found.
-        //  2. We don't want document comments before this token.  Document comments are for functions
-        //     and constructs.
-        //               (1) ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓  ↓↓↓↓↓ (2)
-        if self.eat_optional(Token::Identifier, false) {
-            // If this `if` statement is true, it means that a valid identifier was found.  We can now
-            // return it as a value.
-            return Some(AstMeta::new(
-                self.lexer.span(),
-                Ast::IdentifierLiteral(self.lexer.slice().into()),
-            ));
-        } else if self.eat_optional(Token::TrueKeyword, false) {
-            return Some(AstMeta::new(self.lexer.span(), Ast::BooleanLiteral(true)));
-        } else if self.eat_optional(Token::FalseKeyword, false) {
-            return Some(AstMeta::new(self.lexer.span(), Ast::BooleanLiteral(false)));
-        } else if self.eat_optional(Token::String, false) {
-            let slice = self.lexer.slice();
-            //          ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-            // We use this variable for slightly better efficiency, rather than calling
-            // `self.lexer.slice()` multiple times below.
-
-            return Some(AstMeta::new(
-                self.lexer.span(),
-                Ast::StringLiteral(slice[1..slice.len() - 1].into()),
-                /*                 ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ This removes the starting and ending
-                 * quotes                                           from the string. */
-            ));
-        } else if self.eat_optional(Token::Number, false) {
-            //                      ↑↑↑↑↑↑↑↑↑↑↑↑↑
-            // As you can tell (I'm sure you can), the token found was a number.  This means that we
-            // need to convert the number to the correct AST item.
-
-            let slice = self.lexer.slice();
-
-            if slice.contains('e') || slice.contains('E') || slice.contains('.') {
-                // The token found must have been a floating point number.
+        if let Some(tok) = self.peek_token() {
+            if tok == Token::Identifier {
+                self.lexer.next();
                 return Some(AstMeta::new(
                     self.lexer.span(),
-                    // We need to convert the slice into a float, this is possible with Rust's `parse`
-                    // method.
-                    //                ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-                    Ast::FloatLiteral(slice.parse::<f64>().unwrap()),
+                    Ast::IdentifierLiteral(self.lexer.slice().into()),
                 ));
-            } else {
-                // The token is an integer literal, so we need to confirm that the number is small
-                // enough to fit into a `u64`.
+            } else if tok == Token::TrueKeyword {
+                self.lexer.next();
+                return Some(AstMeta::new(self.lexer.span(), Ast::BooleanLiteral(true)));
+            } else if tok == Token::FalseKeyword {
+                self.lexer.next();
+                return Some(AstMeta::new(self.lexer.span(), Ast::BooleanLiteral(false)));
+            } else if tok == Token::String {
+                self.lexer.next();
+                let slice = self.lexer.slice();
+                //          ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+                // We use this variable for slightly better efficiency, rather than calling
+                // `self.lexer.slice()` multiple times below.
 
-                if let Ok(item) = slice.parse::<u64>() {
-                    // ↑↑↑↑↑↑↑↑ This if statement checks if the number was small enough or not.  If we
-                    //          reach this block, then the number must have been valid.
+                return Some(AstMeta::new(
+                    self.lexer.span(),
+                    Ast::StringLiteral(slice[1..slice.len() - 1].into()),
+                    /*                 ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ This removes the starting and
+                     * ending quotes
+                     * from the string. */
+                ));
+            } else if tok == Token::Number {
+                //           ↑↑↑↑↑↑↑↑↑↑↑↑↑
+                // As you can tell (I'm sure you can), the token found was a number.  This means that we
+                // need to convert the number to the correct AST item.
 
-                    return Some(AstMeta::new(self.lexer.span(), Ast::IntegerLiteral(item)));
+                self.lexer.next();
+
+                let slice = self.lexer.slice();
+
+                if slice.contains('e') || slice.contains('E') || slice.contains('.') {
+                    // The token found must have been a floating point number.
+                    return Some(AstMeta::new(
+                        self.lexer.span(),
+                        // We need to convert the slice into a float, this is possible with Rust's
+                        // `parse` method.
+                        //                ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+                        Ast::FloatLiteral(slice.parse::<f64>().unwrap()),
+                    ));
                 } else {
-                    // The u64 parsing process was unsuccessful, so we should throw a diagnostic saying
-                    // so.
+                    // The token is an integer literal, so we need to confirm that the number is small
+                    // enough to fit into a `u64`.
 
-                    let label = Label::primary((), self.lexer.span())
-                        .with_message("this number is too large to handle.");
-                    //                                ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ ;)
+                    if let Ok(item) = slice.parse::<u64>() {
+                        // ↑↑↑↑↑↑↑↑ This if statement checks if the number was small enough or not. If
+                        // we reach this block, then the number must have been valid.
 
-                    let diagnostic = Diagnostic::error()
-                        .with_code("E0007")
-                        .with_labels(vec![label])
-                        .with_message("invalid number (too large).");
+                        return Some(AstMeta::new(self.lexer.span(), Ast::IntegerLiteral(item)));
+                    } else {
+                        // The u64 parsing process was unsuccessful, so we should throw a diagnostic
+                        // saying so.
 
-                    self.context.diagnostics.push(diagnostic);
-                    self.successful = false;
+                        let label = Label::primary((), self.lexer.span())
+                            .with_message("this number is too large to handle.");
+                        //                                ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ ;)
 
-                    // We can fall through because be default, this function returns `None`.
+                        let diagnostic = Diagnostic::error()
+                            .with_code("E0007")
+                            .with_labels(vec![label])
+                            .with_message("invalid number (too large).");
+
+                        self.context.diagnostics.push(diagnostic);
+                        self.successful = false;
+
+                        // We can fall through because be default, this function returns `None`.
+                    }
                 }
+            } else {
+                self.lexer.next();
+                let label = Label::primary((), self.lexer.span())
+                    .with_message(format!("expected a value here, got {}", self.lexer.slice()));
+
+                let diagnostic = Diagnostic::error()
+                    .with_code("E0013")
+                    .with_labels(vec![label])
+                    .with_message("expected a value.");
+
+                self.context.diagnostics.push(diagnostic);
+                self.successful = false;
             }
         }
 
@@ -670,20 +684,18 @@ impl<'a> Parser<'a> {
                                     // There is no value in the subscript.
                                     left = AstMeta::new(
                                         left.range.start..self.lexer.span().end,
-                                        Ast::SubscriptExpr(left.into_box(), None)
+                                        Ast::SubscriptExpr(left.into_box(), None),
                                     );
                                 } else {
-                                    // The subscript has a right operand, so we can use a recursive call to recieve
-                                    // the operand.
+                                    // The subscript has a right operand, so we can use a recursive call
+                                    // to recieve the operand.
                                     if let Some(right) = self.parse_expression() {
                                         // eat the closing bracket
                                         self.eat(Token::RBrack, false);
 
                                         left = AstMeta::new(
                                             left.range.start..self.lexer.span().end,
-                                            Ast::SubscriptExpr(left.into_box(), Some(
-                                                right.into_box()
-                                            ))
+                                            Ast::SubscriptExpr(left.into_box(), Some(right.into_box())),
                                         );
                                     } else {
                                         if self.successful {
@@ -720,29 +732,38 @@ impl<'a> Parser<'a> {
                             }
                         }
                     } else if let Some((lp, rp)) = op.infix_precedence() {
+                        // The token is an infix operator, which means an operator that takes both left
+                        // and right operands.  These are known as "binary expressions," since they
+                        // take two operands.
+                        // An example of this includes `21 + 21`, which equates to the tree:
+                        //
+                        //     (+
+                        //         21,
+                        //         21
+                        //     )
+                        //
+
                         if lp < min {
                             break;
                         }
+
                         self.lexer.next();
 
                         if let Some(rhs) = self.parse_binary(rp) {
                             left = AstMeta::new(
                                 left.range.start..self.lexer.span().end,
-                                Ast::BinaryExpr(
-                                    op,
-                                    left.into_box(),
-                                    rhs.into_box()
-                                )
+                                Ast::BinaryExpr(op, left.into_box(), rhs.into_box()),
                             );
                         } else {
                             // We expected a right hand side operand after the operator, but there was
                             // nothing.
                             if self.successful {
                                 // No error was thrown, we should throw an error here.
-                                let label = Label::primary((), self.lexer.span()).with_message(format!(
-                                    "expected expression [here] after '{}' operator",
-                                    next_op.as_string().unwrap()
-                                ));
+                                let label =
+                                    Label::primary((), self.lexer.span()).with_message(format!(
+                                        "expected expression [here] after '{}' operator",
+                                        next_op.as_string().unwrap()
+                                    ));
 
                                 let diagnostic = Diagnostic::error()
                                     .with_code("E0008")
@@ -773,6 +794,222 @@ impl<'a> Parser<'a> {
 
     /// Parses a single expression at the current index of the lexer.
     pub fn parse_expression(&mut self) -> Option<AstMeta> {
+        // self.parse_binary(0)
+        if let Some(tok) = self.peek_token() {
+            if tok == Token::IfKeyword {
+                // The expression is an `if` operation.
+                //
+                // First of all, we need to find the expression that the if statement uses.
+    
+                let start = self.lexer.span().start;
+                self.lexer.next();
+    
+                let ifblock;
+                let expr;
+    
+                if let Some(e) = self.parse_expression() {
+                    if self.eat(Token::LCurly, false) {
+                        if let Some(block) = self.parse_block() {
+                            ifblock = block;
+                            expr = e;
+                        } else {
+                            // `parse_block()` should have thrown an error had anything gone wrong.
+                            return None;
+                        }
+                    } else {
+                        return None;
+                    }
+                } else {
+                    if self.successful {
+                        // No expression was found in the `if` statement, so we must throw an error, no
+                        // error was thrown, we should throw an error here.
+                        let label = Label::primary((), self.lexer.span())
+                            .with_message("expected expression in 'if' statement (here).");
+    
+                        let diagnostic = Diagnostic::error()
+                            .with_code("E0010")
+                            .with_labels(vec![label])
+                            .with_message("expected expression in 'if' statement.");
+    
+                        self.context.diagnostics.push(diagnostic);
+                        self.successful = false;
+                    }
+    
+                    return None;
+                }
+    
+                let mut branches = vec![];
+    
+                // Now, we need to parse the other branches of the if statement.  We do this by looping
+                // until there is no more `else if` or `else` statements at the end of a block.
+                loop {
+                    if let Some(tok) = self.peek_token() {
+                        if tok == Token::ElseKeyword {
+                            // It could be either an `else` statement or an `else if` statement.  We have
+                            // yet to check whether there is an `if` after the `else` keyword.
+    
+                            let span = self.lexer.span();
+                            self.lexer.next();
+    
+                            if let Some(tok) = self.peek_token() {
+                                if tok == Token::IfKeyword {
+                                    // It's an `else if` statement.
+    
+                                    self.lexer.next();
+    
+                                    println!("TESTasdfasdfa");
+                                    if let Some(e) = self.parse_expression() {
+                                        if self.eat(Token::LCurly, false) {
+                                            if let Some(block) = self.parse_block() {
+                                                // Push the `else if` statement to the branches vector.
+                                                branches.push(AstMeta::new(
+                                                    span.start..self.lexer.span().end,
+                                                    Ast::IfStmnt {
+                                                        block: block,
+                                                        branches: vec![],
+                                                        expr: e.into_box(),
+                                                    },
+                                                ))
+                                            } else {
+                                                // `parse_block()` should have thrown an error had anything
+                                                // gone wrong.
+                                                return None;
+                                            }
+                                        } else {
+                                            return None;
+                                        }
+                                    } else {
+                                        if self.successful {
+                                            // No expression was found in the `if` statement, so we must
+                                            // throw an error, no
+                                            // error was thrown, we should throw an error here.
+                                            let label = Label::primary((), self.lexer.span()).with_message(
+                                                "expected expression in 'if' statement (here).",
+                                            );
+    
+                                            let diagnostic = Diagnostic::error()
+                                                .with_code("E0010")
+                                                .with_labels(vec![label])
+                                                .with_message("expected expression in 'if' statement.");
+    
+                                            self.context.diagnostics.push(diagnostic);
+                                            self.successful = false;
+                                        }
+    
+                                        return None;
+                                    }
+                                } else if tok == Token::LCurly {
+                                    // It's an `else` statement
+                                    self.lexer.next();
+                                    if let Some(block) = self.parse_block() {
+                                        branches.push(AstMeta::new(
+                                            span.start..self.lexer.span().end,
+                                            Ast::Block(block),
+                                        ));
+                                    } else {
+                                        return None;
+                                    }
+                                }
+                            } else {
+                                // There is no `if` keyword, and there isn't a block either.  This is indeed
+                                // a syntax error.
+                                let label = Label::primary((), span).with_message(
+                                    "expected one of '{' or 'if', found the end of the file.",
+                                );
+    
+                                let diagnostic = Diagnostic::error()
+                                    .with_code("E0012")
+                                    .with_labels(vec![label])
+                                    .with_message("expected '{' or 'if'");
+    
+                                self.context.diagnostics.push(diagnostic);
+                                self.successful = false;
+    
+                                return None;
+                            }
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+    
+                return Some(AstMeta::new(
+                    start..self.lexer.span().end,
+                    Ast::IfStmnt {
+                        expr: expr.into_box(),
+                        block: ifblock,
+                        branches,
+                    },
+                ));
+            }
+        }
+
         self.parse_binary(0)
+    }
+
+    /// Parses expressions until a `}` is found.
+    fn parse_block(&mut self) -> Option<Vec<AstMeta>> {
+        let mut ast = vec![];
+
+        loop {
+            if let Some(tok) = self.peek_token() {
+                if tok == Token::RCurly {
+                    self.lexer.next();
+                    break;
+                }
+                if tok == Token::Semicolon {
+                    self.lexer.next();
+                    continue;
+                }
+
+                if let Some(mut expr) = self.parse_expression() {
+                    if let Some(tok2) = self.peek_token() {
+                        if tok2 == Token::Semicolon {
+                            self.lexer.next();
+                            expr.semicolon();
+                        }
+                    }
+
+                    ast.push(expr);
+                } else {
+                    if self.successful {
+                        // End of file found before the closing curly bracket.
+                        self.lexer.next();
+
+                        let label = Label::primary((), self.lexer.span())
+                            .with_message("expected a closing '}' here.");
+
+                        let diagnostic = Diagnostic::error()
+                            .with_code("E0011")
+                            .with_labels(vec![label])
+                            .with_message("unclosed block statement.");
+
+                        self.context.diagnostics.push(diagnostic);
+                        self.successful = false;
+                    }
+
+                    return None;
+                }
+            } else {
+                // The file ended; meaning no closing bracket was found.
+                self.lexer.next();
+
+                let label =
+                    Label::primary((), self.lexer.span()).with_message("expected a closing '}' here.");
+
+                let diagnostic = Diagnostic::error()
+                    .with_code("E0011")
+                    .with_labels(vec![label])
+                    .with_message("unclosed block statement.");
+
+                self.context.diagnostics.push(diagnostic);
+                self.successful = false;
+                return None;
+            }
+        }
+
+        Some(ast)
     }
 }
