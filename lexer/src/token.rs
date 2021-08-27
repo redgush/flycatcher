@@ -154,7 +154,7 @@ pub enum Token {
     PrivKeyword,
 
     /// The `if` keyword, which is used in logical operations.
-    /// 
+    ///
     /// ```flycatcher
     /// if expression {
     ///     // ...
