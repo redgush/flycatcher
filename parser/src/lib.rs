@@ -283,6 +283,7 @@ impl<'a> Parser<'a> {
         false
     }
 
+    #[allow(dead_code)]
     /// Consumes a token of the given type, if possible.  Otherwise, this returns `false`.
     ///
     /// If `doc` is `true`, this function will push any document
