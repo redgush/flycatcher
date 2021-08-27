@@ -11,6 +11,7 @@ pub enum Opcode {
 
     /// `Call` operators are `()` argument lists after a name, such as `my_function()`.
     Call,
+    Colon,
     GreaterGreater,
     LessLess,
     EqualsEquals,
@@ -38,6 +39,7 @@ impl Opcode {
     /// Returns the opcode associated with a token, if any.
     pub fn from_token(tok: Token) -> Option<Opcode> {
         match tok {
+            Token::Colon => Some(Opcode::Colon),
             Token::Period => Some(Opcode::Period),
             Token::LBrack => Some(Opcode::Subscript),
             Token::LParen => Some(Opcode::Call),
@@ -48,6 +50,8 @@ impl Opcode {
             Token::ExclamationEquals => Some(Opcode::ExclamationEquals),
             Token::GreaterEquals => Some(Opcode::GreaterEquals),
             Token::LessEquals => Some(Opcode::LessEquals),
+            Token::Less => Some(Opcode::Less),
+            Token::Greater => Some(Opcode::Greater),
             Token::AndAnd => Some(Opcode::AndAnd),
             Token::OrOr => Some(Opcode::OrOr),
             Token::Caret => Some(Opcode::Caret),
@@ -85,7 +89,8 @@ impl Opcode {
             Self::Or => (77, 78),
             Self::AndAnd => (75, 76),
             Self::OrOr => (73, 74),
-            Self::Equals => (71, 72),
+            Self::Colon => (71, 72),
+            Self::Equals => (69, 70),
             _ => return None,
         })
     }
@@ -105,6 +110,27 @@ impl Opcode {
             Self::Exclamation => 98,
             Self::Plus => 97,
             Self::Minus => 97,
+            _ => return None,
+        })
+    }
+
+    /// Returns the binding power of the operator if it is an infix operator.  This returns the binding
+    /// power of the opcode for *types*, which allows template declarations.
+    pub fn type_infix_precedence(&self) -> Option<(usize, usize)> {
+        Some(match self {
+            Self::Period => (100, 99),
+            Self::Plus => (97, 98),
+            Self::Colon => (95, 96),
+            _ => return None,
+        })
+    }
+
+    /// Returns the type binding power of the operator, if it is a postfix.
+    pub fn type_postfix_precedence(&self) -> Option<usize> {
+        Some(match self {
+            Self::Subscript => 100,
+            // The `<` token starts a template declaration.
+            Self::Less => 99,
             _ => return None,
         })
     }

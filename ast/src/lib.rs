@@ -24,7 +24,7 @@ pub enum Ast {
     FloatLiteral(f64),
 
     /// An array literal, using the `[]` syntax:
-    /// 
+    ///
     /// ```flycatcher
     /// [1, 2, 3]
     /// ```
@@ -41,11 +41,18 @@ pub enum Ast {
     SubscriptExpr(Box<AstMeta>, Option<Box<AstMeta>>),
 
     /// A function call statement, using the call operator:
-    /// 
+    ///
     /// ```flycatcher
     /// my_function();
     /// ```
     CallExpr(Box<AstMeta>, Vec<AstMeta>),
+
+    /// A template expression:
+    ///
+    /// ```flycatcher
+    /// my_template<Type1, Type2>
+    /// ```
+    TemplateExpr(Box<AstMeta>, Vec<AstMeta>),
 
     /// An `if` statement with any amount of branches.
     IfStmnt {
@@ -73,6 +80,30 @@ pub enum Ast {
         /// A list of child statements in the block after the expression.
         block: Vec<AstMeta>,
     },
+
+    FunctionConstruct {
+        /// The construct's name, minus the `@` prefix.
+        construct: String,
+
+        /// The name of the function being declared.
+        name: Box<AstMeta>,
+
+        /// The type annotation of which the function should return.
+        returns: Option<Box<AstMeta>>,
+
+        /// A list of arguments declared in the function construct.  These are expected to be type
+        /// declarations using the colon (`:`) operator.
+        arguments: Vec<AstMeta>,
+
+        /// The code block after the argument list/return annotation.
+        block: Vec<AstMeta>,
+    },
+
+    /// A statement with `pub` access.
+    PubStmnt(Box<AstMeta>),
+
+    /// A statement with `priv` access.
+    PrivStmnt(Box<AstMeta>),
 
     /// A block statement with a list of child statements.
     Block(Vec<AstMeta>),
