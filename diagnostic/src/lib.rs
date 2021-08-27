@@ -119,6 +119,8 @@ impl<'a> Context<'a> {
             styles.primary_label_warning = yellow_spec.clone();
         }
 
+        config.styles = styles;
+
         Self {
             config,
             filename,
