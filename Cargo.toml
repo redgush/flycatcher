@@ -2,6 +2,7 @@
 members = [
     "ast",
     "diagnostic",
+    "flycatcher",
     "lexer",
     "parser",
 ]

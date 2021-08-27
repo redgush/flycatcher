@@ -19,6 +19,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "flycatcher"
+version = "0.1.0"
+dependencies = [
+ "flycatcher-diagnostic",
+ "flycatcher-parser",
+]
+
+[[package]]
 name = "flycatcher-ast"
 version = "0.2.0"
 dependencies = [
