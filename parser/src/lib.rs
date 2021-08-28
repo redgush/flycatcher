@@ -1346,7 +1346,8 @@ impl<'a> Parser<'a> {
                 t == Token::LParen ||
                 t == Token::String ||
                 t == Token::IfKeyword ||
-                t == Token::WhileKeyword {
+                t == Token::WhileKeyword
+            {
                 return true;
             }
         }
@@ -1519,10 +1520,8 @@ impl<'a> Parser<'a> {
                 if let Some(v) = self.parse_expression() {
                     return Some(AstMeta::new(
                         start..self.lexer.span().end,
-                        Ast::ReturnStmnt(
-                            Some(v.into_box())
-                        )
-                    ))
+                        Ast::ReturnStmnt(Some(v.into_box())),
+                    ));
                 } else {
                     // We can assume an error occurred since we know that there is a token left in
                     // the lexer.
@@ -1531,10 +1530,8 @@ impl<'a> Parser<'a> {
             } else {
                 return Some(AstMeta::new(
                     start..self.lexer.span().end,
-                    Ast::ReturnStmnt(
-                        None
-                    )
-                ))
+                    Ast::ReturnStmnt(None),
+                ));
             }
         } else if self.eat_optional(Token::ReturnKeyword, true) {
             let start = self.lexer.span().end;
@@ -1544,10 +1541,8 @@ impl<'a> Parser<'a> {
                 if let Some(v) = self.parse_expression() {
                     return Some(AstMeta::new(
                         start..self.lexer.span().end,
-                        Ast::ReturnStmnt(
-                            Some(v.into_box())
-                        )
-                    ))
+                        Ast::ReturnStmnt(Some(v.into_box())),
+                    ));
                 } else {
                     // We can assume an error occurred since we know that there is a token left in
                     // the lexer.
@@ -1556,10 +1551,8 @@ impl<'a> Parser<'a> {
             } else {
                 return Some(AstMeta::new(
                     start..self.lexer.span().end,
-                    Ast::ReturnStmnt(
-                        None
-                    )
-                ))
+                    Ast::ReturnStmnt(None),
+                ));
             }
         } else if self.eat_optional(Token::ContinueKeyword, true) {
             let start = self.lexer.span().end;
@@ -1569,10 +1562,8 @@ impl<'a> Parser<'a> {
                 if let Some(v) = self.parse_expression() {
                     return Some(AstMeta::new(
                         start..self.lexer.span().end,
-                        Ast::ContinueStmnt(
-                            Some(v.into_box())
-                        )
-                    ))
+                        Ast::ContinueStmnt(Some(v.into_box())),
+                    ));
                 } else {
                     // We can assume an error occurred since we know that there is a token left in
                     // the lexer.
@@ -1581,10 +1572,8 @@ impl<'a> Parser<'a> {
             } else {
                 return Some(AstMeta::new(
                     start..self.lexer.span().end,
-                    Ast::ContinueStmnt(
-                        None
-                    )
-                ))
+                    Ast::ContinueStmnt(None),
+                ));
             }
         } else if self.eat_optional(Token::BreakKeyword, true) {
             let start = self.lexer.span().end;
@@ -1594,10 +1583,8 @@ impl<'a> Parser<'a> {
                 if let Some(v) = self.parse_expression() {
                     return Some(AstMeta::new(
                         start..self.lexer.span().end,
-                        Ast::BreakStmnt(
-                            Some(v.into_box())
-                        )
-                    ))
+                        Ast::BreakStmnt(Some(v.into_box())),
+                    ));
                 } else {
                     // We can assume an error occurred since we know that there is a token left in
                     // the lexer.
@@ -1606,10 +1593,8 @@ impl<'a> Parser<'a> {
             } else {
                 return Some(AstMeta::new(
                     start..self.lexer.span().end,
-                    Ast::BreakStmnt(
-                        None
-                    )
-                ))
+                    Ast::BreakStmnt(None),
+                ));
             }
         }
 
