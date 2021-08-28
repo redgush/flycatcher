@@ -1,10 +1,9 @@
-use crate::{ConstructProperty, named::Named, round};
+use crate::{named::Named, round, ConstructProperty};
 
 /// A C-ABI struct that can be used in Flycatcher source using the `@struct` construct.  It's called
 /// `CStruct` rather than `Struct` due to Rust not being happy when I call the module `struct`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CStruct {
-
     /// The top-level name of the struct.  Structs must be declared at the root level.
     pub name: String,
 
@@ -13,12 +12,10 @@ pub struct CStruct {
     pub full_name: Named,
 
     /// A list of properties declared in the struct.
-    pub properties: Vec<ConstructProperty>
-
+    pub properties: Vec<ConstructProperty>,
 }
 
 impl CStruct {
-
     /// Calculates the minimum align for this value.
     pub fn calculate_32bit_align(&self) -> usize {
         let mut size = 0;
@@ -66,10 +63,9 @@ impl CStruct {
             } else {
                 size += prop.ty.get_32bit_align();
             }
-            
+
             i += 1;
         }
-
 
         round(size, self.calculate_32bit_align())
     }
@@ -93,12 +89,10 @@ impl CStruct {
             } else {
                 size += prop.ty.get_64bit_align();
             }
-            
+
             i += 1;
         }
 
-
         round(size, self.calculate_64bit_align())
     }
-
 }

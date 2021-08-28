@@ -19,6 +19,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "flyc-hir"
+version = "0.1.0"
+dependencies = [
+ "flyc-types",
+]
+
+[[package]]
 name = "flyc-types"
 version = "0.1.0"
 

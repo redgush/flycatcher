@@ -2,9 +2,9 @@
 
 mod align;
 mod construct;
+mod cstruct;
 mod func;
 mod named;
-mod cstruct;
 
 pub use align::round;
 pub use construct::{Construct, ConstructProperty};
@@ -15,7 +15,6 @@ pub use named::Named;
 /// Different basic types that can be derived from in the compiler.
 #[derive(Clone, Debug, PartialEq)]
 pub enum FlycatcherType {
-
     /// A "void" type that has an align of `0`.
     Void,
 
@@ -33,10 +32,10 @@ pub enum FlycatcherType {
 
     /// An 64-bit unsigned integer.
     Uint64,
-    
-    /// An unsigned integer that scales to the target architecture.  For example, on 32-bit archectures,
-    /// this would be a 32-bit unsigned integer.  On 64-bit architectures, this would be a 64-bit unsigned
-    /// integer.
+
+    /// An unsigned integer that scales to the target architecture.  For example, on 32-bit
+    /// archectures, this would be a 32-bit unsigned integer.  On 64-bit architectures, this would
+    /// be a 64-bit unsigned integer.
     Usize,
 
     /// 8-bit signed integer.
@@ -70,11 +69,9 @@ pub enum FlycatcherType {
 
     /// A C-ABI struct.
     CStruct(CStruct),
-
 }
 
 impl FlycatcherType {
-
     /// Returns the align of this type on 32-bit target architectures (in bytes).
     pub fn get_32bit_align(&self) -> usize {
         match self {
@@ -126,7 +123,7 @@ impl FlycatcherType {
         match self {
             FlycatcherType::Construct(c) => c.calculate_32bit_size(),
             FlycatcherType::CStruct(c) => c.calculate_32bit_size(),
-            _ => self.get_32bit_align()
+            _ => self.get_32bit_align(),
         }
     }
 
@@ -135,8 +132,7 @@ impl FlycatcherType {
         match self {
             FlycatcherType::Construct(c) => c.calculate_64bit_size(),
             FlycatcherType::CStruct(c) => c.calculate_64bit_size(),
-            _ => self.get_64bit_align()
+            _ => self.get_64bit_align(),
         }
     }
-
 }

@@ -2,6 +2,7 @@
 members = [
     "ast",
     "diagnostic",
+    "flyc-hir",
     "flyc-types",
     "flycatcher",
     "lexer",

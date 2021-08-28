@@ -1,5 +1,5 @@
-use crate::Hir;
 use crate::symbol::Access;
+use crate::Hir;
 use flyc_types::Named;
 
 /// A parameter for the function.

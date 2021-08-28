@@ -8,8 +8,8 @@ pub enum Access {
     /// Accessable outside of the module; using the `pub` keyword.
     Public,
 
-    /// Accessable only inside of the module, which uses the `priv` keyword.  This is the default access
-    /// for all symbols.
+    /// Accessable only inside of the module, which uses the `priv` keyword.  This is the default
+    /// access for all symbols.
     Private,
 }
 

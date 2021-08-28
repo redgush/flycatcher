@@ -16,18 +16,12 @@ pub struct HirMeta {
 impl HirMeta {
     /// Creates an HIR metadata struct.
     pub fn new(range: Range<usize>, item: Hir) -> Self {
-        Self {
-            range,
-            item,
-        }
+        Self { range, item }
     }
 
     /// Creates an HIR metadata object and immediately boxes it.
     pub fn boxed(range: Range<usize>, item: Hir) -> Box<Self> {
-        Box::new(Self {
-            range,
-            item,
-        })
+        Box::new(Self { range, item })
     }
 
     /// (Destructively) converts this HIR metadata struct into a boxed HIR metadata struct.

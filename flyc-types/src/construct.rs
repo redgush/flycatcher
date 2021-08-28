@@ -1,21 +1,18 @@
-use crate::{FlycatcherType, Function, Named, round};
+use crate::{round, FlycatcherType, Function, Named};
 
 /// Properties for constructs and structs.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConstructProperty {
-
     /// The name of the property.
     pub name: String,
 
     /// The type of the property.
-    pub ty: FlycatcherType
-
+    pub ty: FlycatcherType,
 }
 
 /// A Flycatcher-style construct.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Construct {
-
     /// The name of the construct.
     pub name: String,
 
@@ -27,11 +24,9 @@ pub struct Construct {
 
     /// A list of methods declared in the construct.
     pub methods: Vec<Function>,
-
 }
 
 impl Construct {
-
     /// Calculates the minimum align for this value.
     pub fn calculate_32bit_align(&self) -> usize {
         let mut size = 0;
@@ -79,10 +74,9 @@ impl Construct {
             } else {
                 size += prop.ty.get_32bit_align();
             }
-            
+
             i += 1;
         }
-
 
         round(size, self.calculate_32bit_align())
     }
@@ -106,12 +100,10 @@ impl Construct {
             } else {
                 size += prop.ty.get_64bit_align();
             }
-            
+
             i += 1;
         }
 
-
         round(size, self.calculate_64bit_align())
     }
-
 }

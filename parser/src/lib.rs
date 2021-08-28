@@ -1586,8 +1586,8 @@ impl<'a> Parser<'a> {
                         start..self.lexer.span().end,
                         Ast::PreprocessorStmnt {
                             name: name.to_string(),
-                            argument: Some(v.into_box())
-                        }
+                            argument: Some(v.into_box()),
+                        },
                     ));
                 } else {
                     // We can assume an error occurred since we know that there is a token left in
@@ -1599,8 +1599,8 @@ impl<'a> Parser<'a> {
                     start..self.lexer.span().end,
                     Ast::PreprocessorStmnt {
                         name: name.to_string(),
-                        argument: None
-                    }
+                        argument: None,
+                    },
                 ));
             }
         } else if self.eat_optional(Token::BreakKeyword, true) {

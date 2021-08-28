@@ -1,6 +1,7 @@
 use crate::symbol::SymbolType;
 
-/// A Flycatcher module stores information about a Flycatcher source, including its imports, symbols, etc.
+/// A Flycatcher module stores information about a Flycatcher source, including its imports, symbols,
+/// etc.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FlycatcherModule {
     /// A list of symbols declared in the module.
