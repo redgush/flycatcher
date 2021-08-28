@@ -136,6 +136,9 @@ pub enum Ast {
     /// A statement with `priv` access.
     PrivStmnt(Box<AstMeta>),
 
+    /// A return statement with an optional return value.
+    ReturnStmnt(Option<Box<AstMeta>>),
+
     /// A block statement with a list of child statements.
     Block(Vec<AstMeta>),
 }
