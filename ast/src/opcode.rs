@@ -43,8 +43,6 @@ impl Opcode {
             Token::Period => Some(Opcode::Period),
             Token::LBrack => Some(Opcode::Subscript),
             Token::LParen => Some(Opcode::Call),
-            Token::GreaterGreater => Some(Opcode::GreaterGreater),
-            Token::LessLess => Some(Opcode::LessLess),
             Token::EqualsEquals => Some(Opcode::EqualsEquals),
             Token::Exclamation => Some(Opcode::Exclamation),
             Token::ExclamationEquals => Some(Opcode::ExclamationEquals),

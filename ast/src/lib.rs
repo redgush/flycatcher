@@ -99,6 +99,37 @@ pub enum Ast {
         block: Vec<AstMeta>,
     },
 
+    /// A class construct declaration.
+    ///
+    /// ```flycatcher
+    /// @construct my_construct {
+    ///
+    ///     // ...
+    ///
+    /// }
+    /// ```
+    ClassConstruct {
+        /// The name of the construct used to initialize the class.
+        construct: String,
+
+        /// The name of the class.
+        name: Box<AstMeta>,
+
+        /// The code block after the class name, wrapped in `{}`.
+        block: Vec<AstMeta>,
+    },
+
+    VariableConstruct {
+        /// The name of the construct used to declare the variable.
+        construct: String,
+
+        /// The name of the variable being declared.
+        name: Box<AstMeta>,
+
+        /// The value the variable is being constructed with.
+        value: Box<AstMeta>,
+    },
+
     /// A statement with `pub` access.
     PubStmnt(Box<AstMeta>),
 
