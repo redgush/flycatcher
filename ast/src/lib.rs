@@ -139,6 +139,12 @@ pub enum Ast {
     /// A return statement with an optional return value.
     ReturnStmnt(Option<Box<AstMeta>>),
 
+    /// A return statement with an optional label to jump to.
+    ContinueStmnt(Option<Box<AstMeta>>),
+
+    /// A break statement with an optional label of a loop to end.
+    BreakStmnt(Option<Box<AstMeta>>),
+
     /// A block statement with a list of child statements.
     Block(Vec<AstMeta>),
 }

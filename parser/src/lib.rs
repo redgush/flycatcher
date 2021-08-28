@@ -1332,6 +1332,27 @@ impl<'a> Parser<'a> {
         Some(left)
     }
 
+    pub fn is_value(&mut self) -> bool {
+        if let Some(t) = self.peek_token() {
+            if t == Token::Plus ||
+                t == Token::Minus ||
+                t == Token::Not ||
+                t == Token::Identifier ||
+                t == Token::Number ||
+                t == Token::TrueKeyword ||
+                t == Token::FalseKeyword ||
+                t == Token::LCurly ||
+                t == Token::Exclamation ||
+                t == Token::LParen ||
+                t == Token::String ||
+                t == Token::IfKeyword ||
+                t == Token::WhileKeyword {
+                return true;
+            }
+        }
+        false
+    }
+
     /// Parses a single expression at the current index of the lexer.
     pub fn parse_expression(&mut self) -> Option<AstMeta> {
         if self.eat_optional(Token::ConstructIdentifier, true) {
@@ -1494,43 +1515,101 @@ impl<'a> Parser<'a> {
             let start = self.lexer.span().end;
 
             // Determine whether or not the return statement has a return value.
-            if let Some(t) = self.peek_token() {
-                if t == Token::Plus ||
-                    t == Token::Minus ||
-                    t == Token::Not ||
-                    t == Token::Identifier ||
-                    t == Token::Number ||
-                    t == Token::TrueKeyword ||
-                    t == Token::FalseKeyword ||
-                    t == Token::LCurly ||
-                    t == Token::Exclamation ||
-                    t == Token::LParen ||
-                    t == Token::String ||
-                    t == Token::IfKeyword ||
-                    t == Token::WhileKeyword {
-                    if let Some(v) = self.parse_expression() {
-                        return Some(AstMeta::new(
-                            start..self.lexer.span().end,
-                            Ast::ReturnStmnt(
-                                Some(v.into_box())
-                            )
-                        ))
-                    } else {
-                        // We can assume an error occurred since we know that there is a token left in
-                        // the lexer.
-                        return None;
-                    }
-                } else {
+            if self.is_value() {
+                if let Some(v) = self.parse_expression() {
                     return Some(AstMeta::new(
                         start..self.lexer.span().end,
-                        Ast::ReturnStmnt(None)
-                    ));
+                        Ast::ReturnStmnt(
+                            Some(v.into_box())
+                        )
+                    ))
+                } else {
+                    // We can assume an error occurred since we know that there is a token left in
+                    // the lexer.
+                    return None;
                 }
             } else {
                 return Some(AstMeta::new(
                     start..self.lexer.span().end,
-                    Ast::ReturnStmnt(None)
-                ));
+                    Ast::ReturnStmnt(
+                        None
+                    )
+                ))
+            }
+        } else if self.eat_optional(Token::ReturnKeyword, true) {
+            let start = self.lexer.span().end;
+
+            // Determine whether or not the return statement has a return value.
+            if self.is_value() {
+                if let Some(v) = self.parse_expression() {
+                    return Some(AstMeta::new(
+                        start..self.lexer.span().end,
+                        Ast::ReturnStmnt(
+                            Some(v.into_box())
+                        )
+                    ))
+                } else {
+                    // We can assume an error occurred since we know that there is a token left in
+                    // the lexer.
+                    return None;
+                }
+            } else {
+                return Some(AstMeta::new(
+                    start..self.lexer.span().end,
+                    Ast::ReturnStmnt(
+                        None
+                    )
+                ))
+            }
+        } else if self.eat_optional(Token::ContinueKeyword, true) {
+            let start = self.lexer.span().end;
+
+            // Determine whether or not the continue statement has a label.
+            if self.is_value() {
+                if let Some(v) = self.parse_expression() {
+                    return Some(AstMeta::new(
+                        start..self.lexer.span().end,
+                        Ast::ContinueStmnt(
+                            Some(v.into_box())
+                        )
+                    ))
+                } else {
+                    // We can assume an error occurred since we know that there is a token left in
+                    // the lexer.
+                    return None;
+                }
+            } else {
+                return Some(AstMeta::new(
+                    start..self.lexer.span().end,
+                    Ast::ContinueStmnt(
+                        None
+                    )
+                ))
+            }
+        } else if self.eat_optional(Token::BreakKeyword, true) {
+            let start = self.lexer.span().end;
+
+            // Determine whether or not the berak statement has a label.
+            if self.is_value() {
+                if let Some(v) = self.parse_expression() {
+                    return Some(AstMeta::new(
+                        start..self.lexer.span().end,
+                        Ast::BreakStmnt(
+                            Some(v.into_box())
+                        )
+                    ))
+                } else {
+                    // We can assume an error occurred since we know that there is a token left in
+                    // the lexer.
+                    return None;
+                }
+            } else {
+                return Some(AstMeta::new(
+                    start..self.lexer.span().end,
+                    Ast::BreakStmnt(
+                        None
+                    )
+                ))
             }
         }
 
