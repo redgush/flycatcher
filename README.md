@@ -13,3 +13,8 @@ We use the Cranelift code generator behind the scenes, which is a rather new cod
     println("Hello, world!");
 }
 ```
+
+# Goals with Flycatcher
+- One of Flycatcher's main goals is to provide as many high-level abstractions as possible without draining the performance and efficiency of the application.
+- The other main goal is to produce small executables.  Flycatcher doesn't rely on the C standard library, unlike programming languages such as Rust (and C of course).  Also, because of the way Flycatcher works, it only links libraries that are used.  Normally, languages like Rust link with their **entire** standard library, making for an unnecessarily large executable since there is unused code all over the place.  Instead of this, we link several small system-specific wrappers where needed, allowing for much smaller executables.
+- Simplicity and consistency are important for Flycatcher, as it's meant to be a high level programming language.  It isn't as advanced as languages such as Rust, nor will it ever be, but it will (hopefully) be just as powerful as any other systems programming language.
