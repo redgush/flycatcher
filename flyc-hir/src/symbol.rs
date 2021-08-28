@@ -1,3 +1,4 @@
+use crate::construct::HirConstruct;
 use crate::func::HirFunction;
 use crate::Hir;
 use flyc_types::Named;
@@ -37,4 +38,13 @@ pub enum SymbolType {
 
     /// A function type.
     Function(HirFunction),
+
+    /// A construct type.
+    Construct(HirConstruct),
+
+    /// An external function.
+    ImportFunction(HirFunction),
+
+    /// An external function.
+    ImportConstruct(HirConstruct),
 }

@@ -3,6 +3,7 @@ use crate::Hir;
 use flyc_types::Named;
 
 /// A property for a construct.
+#[derive(Clone, Debug, PartialEq)]
 pub struct HirConstructProperty {
     /// The name of the property.
     pub name: String,
@@ -15,6 +16,7 @@ pub struct HirConstructProperty {
 }
 
 /// A Flycatcher construct declaration.
+#[derive(Clone, Debug, PartialEq)]
 pub struct HirConstruct {
     /// The name of the construct used to declare this construct.
     pub construct: String,
