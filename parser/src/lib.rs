@@ -616,15 +616,27 @@ impl<'a> Parser<'a> {
             if tok == Token::Identifier {
                 self.lexer.next();
                 return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
                     self.lexer.span(),
                     Ast::IdentifierLiteral(self.lexer.slice().into()),
                 ));
             } else if tok == Token::TrueKeyword {
                 self.lexer.next();
-                return Some(AstMeta::new(self.lexer.span(), Ast::BooleanLiteral(true)));
+                return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
+                    self.lexer.span(),
+                    Ast::BooleanLiteral(true)
+                ));
             } else if tok == Token::FalseKeyword {
                 self.lexer.next();
-                return Some(AstMeta::new(self.lexer.span(), Ast::BooleanLiteral(false)));
+                return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
+                    self.lexer.span(),
+                    Ast::BooleanLiteral(false)
+                ));
             } else if tok == Token::String {
                 self.lexer.next();
                 let slice = self.lexer.slice();
@@ -633,6 +645,8 @@ impl<'a> Parser<'a> {
                 // `self.lexer.slice()` multiple times below.
 
                 return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
                     self.lexer.span(),
                     Ast::StringLiteral(slice[1..slice.len() - 1].into()),
                     /*                 ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑ This removes the starting and
@@ -651,6 +665,8 @@ impl<'a> Parser<'a> {
                 if slice.contains('e') || slice.contains('E') || slice.contains('.') {
                     // The token found must have been a floating point number.
                     return Some(AstMeta::new(
+                        self.context.filename,
+                        self.context.source,
                         self.lexer.span(),
                         // We need to convert the slice into a float, this is possible with Rust's
                         // `parse` method.
@@ -665,7 +681,12 @@ impl<'a> Parser<'a> {
                         // ↑↑↑↑↑↑↑↑ This if statement checks if the number was small enough or not. If
                         // we reach this block, then the number must have been valid.
 
-                        return Some(AstMeta::new(self.lexer.span(), Ast::IntegerLiteral(item)));
+                        return Some(AstMeta::new(
+                            self.context.filename,
+                            self.context.source,
+                            self.lexer.span(),
+                            Ast::IntegerLiteral(item)
+                        ));
                     } else {
                         // The u64 parsing process was unsuccessful, so we should throw a diagnostic
                         // saying so.
@@ -752,6 +773,8 @@ impl<'a> Parser<'a> {
                                             if let Some(block) = self.parse_block() {
                                                 // Push the `else if` statement to the branches vector.
                                                 branches.push(AstMeta::new(
+                                                    self.context.filename,
+                                                    self.context.source,
                                                     span.start..self.lexer.span().end,
                                                     Ast::IfStmnt {
                                                         block: block,
@@ -794,6 +817,8 @@ impl<'a> Parser<'a> {
                                     self.lexer.next();
                                     if let Some(block) = self.parse_block() {
                                         branches.push(AstMeta::new(
+                                            self.context.filename,
+                                            self.context.source,
                                             span.start..self.lexer.span().end,
                                             Ast::Block(block),
                                         ));
@@ -827,6 +852,8 @@ impl<'a> Parser<'a> {
                 }
 
                 return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
                     start..self.lexer.span().end,
                     Ast::IfStmnt {
                         expr: expr.into_box(),
@@ -873,6 +900,8 @@ impl<'a> Parser<'a> {
                 }
 
                 return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
                     start..self.lexer.span().end,
                     Ast::WhileStmnt {
                         expr: expr.into_box(),
@@ -885,6 +914,8 @@ impl<'a> Parser<'a> {
 
                 if let Some(t) = self.parse_list(Token::RBrack) {
                     return Some(AstMeta::new(
+                        self.context.filename,
+                        self.context.source,
                         start..self.lexer.span().end,
                         Ast::ArrayLiteral(t),
                     ));
@@ -897,7 +928,12 @@ impl<'a> Parser<'a> {
                 let start = self.lexer.span().start;
 
                 if let Some(b) = self.parse_block() {
-                    return Some(AstMeta::new(start..self.lexer.span().end, Ast::Block(b)));
+                    return Some(AstMeta::new(
+                        self.context.filename,
+                        self.context.source,
+                        start..self.lexer.span().end,
+                        Ast::Block(b)
+                    ));
                 }
 
                 return None;
@@ -967,6 +1003,8 @@ impl<'a> Parser<'a> {
                     //                 ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
                     if let Some(rhs) = self.parse_binary(prec) {
                         left = AstMeta::new(
+                            self.context.filename,
+                            self.context.source,
                             start..self.lexer.span().end,
                             Ast::UnaryExpr(o, rhs.into_box()),
                         )
@@ -1046,6 +1084,8 @@ impl<'a> Parser<'a> {
 
                                     // There is no value in the subscript.
                                     left = AstMeta::new(
+                                        self.context.filename,
+                                        self.context.source,
                                         left.range.start..self.lexer.span().end,
                                         Ast::SubscriptExpr(left.into_box(), None),
                                     );
@@ -1057,6 +1097,8 @@ impl<'a> Parser<'a> {
                                         self.eat(Token::RBrack, false);
 
                                         left = AstMeta::new(
+                                            self.context.filename,
+                                            self.context.source,
                                             left.range.start..self.lexer.span().end,
                                             Ast::SubscriptExpr(left.into_box(), Some(right.into_box())),
                                         );
@@ -1102,6 +1144,8 @@ impl<'a> Parser<'a> {
                             //               ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
                             if let Some(r) = self.parse_list(Token::RParen) {
                                 left = AstMeta::new(
+                                    self.context.filename,
+                                    self.context.source,
                                     left.range.start..self.lexer.span().end,
                                     Ast::CallExpr(left.into_box(), r),
                                 );
@@ -1132,6 +1176,8 @@ impl<'a> Parser<'a> {
 
                         if let Some(rhs) = self.parse_binary(rp) {
                             left = AstMeta::new(
+                                self.context.filename,
+                                self.context.source,
                                 left.range.start..self.lexer.span().end,
                                 Ast::BinaryExpr(op, left.into_box(), rhs.into_box()),
                             );
@@ -1210,6 +1256,8 @@ impl<'a> Parser<'a> {
 
                                     // There is no value in the subscript.
                                     left = AstMeta::new(
+                                        self.context.filename,
+                                        self.context.source,
                                         left.range.start..self.lexer.span().end,
                                         Ast::SubscriptExpr(left.into_box(), None),
                                     );
@@ -1221,6 +1269,8 @@ impl<'a> Parser<'a> {
                                         self.eat(Token::RBrack, false);
 
                                         left = AstMeta::new(
+                                            self.context.filename,
+                                            self.context.source,
                                             left.range.start..self.lexer.span().end,
                                             Ast::SubscriptExpr(left.into_box(), Some(right.into_box())),
                                         );
@@ -1261,6 +1311,8 @@ impl<'a> Parser<'a> {
                             // It's a template operator.
                             if let Some(r) = self.parse_type_list(Token::Greater) {
                                 left = AstMeta::new(
+                                    self.context.filename,
+                                    self.context.source,
                                     left.range.start..self.lexer.span().end,
                                     Ast::TemplateExpr(left.into_box(), r),
                                 );
@@ -1291,6 +1343,8 @@ impl<'a> Parser<'a> {
 
                         if let Some(rhs) = self.parse_type_binary(rp) {
                             left = AstMeta::new(
+                                self.context.filename,
+                                self.context.source,
                                 left.range.start..self.lexer.span().end,
                                 Ast::BinaryExpr(op, left.into_box(), rhs.into_box()),
                             );
@@ -1433,6 +1487,8 @@ impl<'a> Parser<'a> {
 
                             return Some(
                                 AstMeta::new(
+                                    self.context.filename,
+                                    self.context.source,
                                     start..self.lexer.span().end,
                                     Ast::FunctionConstruct {
                                         construct: const_name.into(),
@@ -1456,6 +1512,8 @@ impl<'a> Parser<'a> {
 
                     if let Some(block) = self.parse_block() {
                         return Some(AstMeta::new(
+                            self.context.filename,
+                            self.context.source,
                             start..self.lexer.span().end,
                             Ast::ClassConstruct {
                                 block,
@@ -1473,6 +1531,8 @@ impl<'a> Parser<'a> {
 
                     if let Some(value) = self.parse_expression() {
                         return Some(AstMeta::new(
+                            self.context.filename,
+                            self.context.source,
                             start..self.lexer.span().end,
                             Ast::VariableConstruct {
                                 construct: const_name.to_string(),
@@ -1490,6 +1550,8 @@ impl<'a> Parser<'a> {
 
             if let Some(t) = self.parse_expression() {
                 return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
                     start..self.lexer.span().end,
                     Ast::PubStmnt(t.into_box()),
                 ));
@@ -1499,6 +1561,8 @@ impl<'a> Parser<'a> {
 
             if let Some(t) = self.parse_expression() {
                 return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
                     start..self.lexer.span().end,
                     Ast::PrivStmnt(t.into_box()),
                 ));
@@ -1508,6 +1572,8 @@ impl<'a> Parser<'a> {
 
             if let Some(t) = self.parse_expression() {
                 return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
                     start..self.lexer.span().end,
                     Ast::PrivStmnt(t.into_box()),
                 ));
@@ -1519,6 +1585,8 @@ impl<'a> Parser<'a> {
             if self.is_value() {
                 if let Some(v) = self.parse_expression() {
                     return Some(AstMeta::new(
+                        self.context.filename,
+                        self.context.source,
                         start..self.lexer.span().end,
                         Ast::ReturnStmnt(Some(v.into_box())),
                     ));
@@ -1529,6 +1597,8 @@ impl<'a> Parser<'a> {
                 }
             } else {
                 return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
                     start..self.lexer.span().end,
                     Ast::ReturnStmnt(None),
                 ));
@@ -1540,6 +1610,8 @@ impl<'a> Parser<'a> {
             if self.is_value() {
                 if let Some(v) = self.parse_expression() {
                     return Some(AstMeta::new(
+                        self.context.filename,
+                        self.context.source,
                         start..self.lexer.span().end,
                         Ast::ReturnStmnt(Some(v.into_box())),
                     ));
@@ -1550,6 +1622,8 @@ impl<'a> Parser<'a> {
                 }
             } else {
                 return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
                     start..self.lexer.span().end,
                     Ast::ReturnStmnt(None),
                 ));
@@ -1561,6 +1635,8 @@ impl<'a> Parser<'a> {
             if self.is_value() {
                 if let Some(v) = self.parse_expression() {
                     return Some(AstMeta::new(
+                        self.context.filename,
+                        self.context.source,
                         start..self.lexer.span().end,
                         Ast::ContinueStmnt(Some(v.into_box())),
                     ));
@@ -1571,6 +1647,8 @@ impl<'a> Parser<'a> {
                 }
             } else {
                 return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
                     start..self.lexer.span().end,
                     Ast::ContinueStmnt(None),
                 ));
@@ -1583,6 +1661,8 @@ impl<'a> Parser<'a> {
             if self.is_value() {
                 if let Some(v) = self.parse_expression() {
                     return Some(AstMeta::new(
+                        self.context.filename,
+                        self.context.source,
                         start..self.lexer.span().end,
                         Ast::PreprocessorStmnt {
                             name: name.to_string(),
@@ -1596,6 +1676,8 @@ impl<'a> Parser<'a> {
                 }
             } else {
                 return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
                     start..self.lexer.span().end,
                     Ast::PreprocessorStmnt {
                         name: name.to_string(),
@@ -1610,6 +1692,8 @@ impl<'a> Parser<'a> {
             if self.is_value() {
                 if let Some(v) = self.parse_expression() {
                     return Some(AstMeta::new(
+                        self.context.filename,
+                        self.context.source,
                         start..self.lexer.span().end,
                         Ast::BreakStmnt(Some(v.into_box())),
                     ));
@@ -1620,6 +1704,8 @@ impl<'a> Parser<'a> {
                 }
             } else {
                 return Some(AstMeta::new(
+                    self.context.filename,
+                    self.context.source,
                     start..self.lexer.span().end,
                     Ast::BreakStmnt(None),
                 ));
@@ -1688,6 +1774,8 @@ impl<'a> Parser<'a> {
 
                 return Some(
                     AstMeta::new(
+                        self.context.filename,
+                        self.context.source,
                         start..self.lexer.span().end,
                         Ast::DeclareStmnt {
                             name: name.into_box(),
