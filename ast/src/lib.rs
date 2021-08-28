@@ -119,6 +119,7 @@ pub enum Ast {
         block: Vec<AstMeta>,
     },
 
+    /// A variable construct declaration.
     VariableConstruct {
         /// The name of the construct used to declare the variable.
         construct: String,
@@ -128,6 +129,18 @@ pub enum Ast {
 
         /// The value the variable is being constructed with.
         value: Box<AstMeta>,
+    },
+
+    /// Declares an external function so it may be used within Flycatcher code.
+    DeclareStmnt {
+        /// The name of the function being declared.
+        name: Box<AstMeta>,
+
+        /// A list of arguments being declared.
+        arguments: Vec<AstMeta>,
+
+        /// The type that the function returns, if any.
+        returns: Option<Box<AstMeta>>,
     },
 
     /// A statement with `pub` access.

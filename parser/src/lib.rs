@@ -1596,6 +1596,80 @@ impl<'a> Parser<'a> {
                     Ast::BreakStmnt(None),
                 ));
             }
+        } else if self.eat_optional(Token::DeclareKeyword, true) {
+            // It's an external function declaration.
+
+            let start = self.lexer.span().start;
+
+            let name;
+            if let Some(n) = self.parse_type_binary(0) {
+                name = n;
+            } else {
+                if self.successful {
+                    let label = Label::primary((), self.lexer.span())
+                        .with_message("expected name for external function declaration here.");
+
+                    let diagnostic = Diagnostic::error()
+                        .with_code("E0017")
+                        .with_labels(vec![label])
+                        .with_message("expected name for external function declaration.");
+
+                    self.context.diagnostics.push(diagnostic);
+                    self.successful = false;
+                }
+
+                return None;
+            }
+
+            if self.eat(Token::LParen, false) {
+                let arguments = if let Some(args) = self.parse_type_list(Token::RParen) {
+                    args
+                } else {
+                    return None;
+                };
+
+                let returns;
+
+                if self.eat_optional(Token::Colon, false) {
+                    // There's a type declaration before the function's code block.
+                    if let Some(ty) = self.parse_type_binary(0) {
+                        // We have the type of the function!
+                        returns = Some(ty.into_box());
+                    } else {
+                        if self.successful {
+                            let label = Label::primary((), self.lexer.span())
+                                .with_message("expected type annotation here.");
+
+                            let diagnostic = Diagnostic::error()
+                                .with_code("E0016")
+                                .with_labels(vec![label])
+                                .with_message("no type annotation after ':'.");
+
+                            self.context.diagnostics.push(diagnostic);
+                            self.successful = false;
+                        }
+
+                        return None;
+                    }
+                } else {
+                    returns = None;
+                }
+
+                let comments = self.comments.clone();
+                self.comments.clear();
+
+                return Some(
+                    AstMeta::new(
+                        start..self.lexer.span().end,
+                        Ast::DeclareStmnt {
+                            name: name.into_box(),
+                            returns,
+                            arguments,
+                        },
+                    )
+                    .with_comments(comments),
+                );
+            }
         }
 
         self.parse_binary(0)
