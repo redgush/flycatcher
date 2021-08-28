@@ -1,5 +1,5 @@
 //! Tools for resolving module paths.
-//! 
+//!
 //! The `lib` directory must be in the same directory as the executable.
 
 use pathdiff::diff_paths;
@@ -29,7 +29,7 @@ pub fn resolve_path(name: String, src: String) -> Option<PathBuf> {
 
         let mod_path = exe.join("lib");
         let folder = mod_path.join(Path::new(&src));
-        
+
         if folder.exists() {
             let module_file = folder.join(Path::new("mod.flyc"));
             if module_file.exists() {
