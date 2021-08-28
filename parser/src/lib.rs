@@ -333,23 +333,25 @@ impl<'a> Parser<'a> {
 
                     self.successful = false;
                     self.context.diagnostics.push(diagnostic);
+
+                    next_token = self.lexer.peek();
+                } else {
+                    // Remove the first 3 (and any more) leading slashes of the comment.
+                    let mut slice = self
+                        .lexer
+                        .slice()
+                        .trim_start_matches('/')
+                        .trim_end_matches('\r');
+
+                    if slice.starts_with(' ') {
+                        // There is an extra space at the start (presumably) that is ignored by the
+                        // parser.
+                        slice = &slice[1..];
+                    }
+
+                    self.comments.push(slice.into());
+                    next_token = self.lexer.peek();
                 }
-
-                // Remove the first 3 (and any more) leading slashes of the comment.
-                let mut slice = self.lexer.slice().trim_start_matches('/');
-
-                if slice.starts_with(' ') {
-                    // There is an extra space at the start (presumably) that is ignored by the parser.
-                    slice = &slice[1..];
-                }
-
-                self.comments.push(slice.into());
-                next_token = self.lexer.next();
-
-                continue;
-            } else if tok == Token::Whitespace || tok == Token::Linebreak {
-                self.lexer.next(); // skip over the whitespace/line break
-                next_token = self.lexer.next();
 
                 continue;
             }
@@ -492,17 +494,17 @@ impl<'a> Parser<'a> {
                         if self.successful {
                             let label = Label::primary((), self.lexer.span()).with_message(format!(
                                 "expected a closing '{}', found end of file",
-                                close.as_name().unwrap()
+                                close.as_string().unwrap()
                             ));
-            
+
                             let diagnostic = Diagnostic::error()
                                 .with_code("E0014")
                                 .with_labels(vec![label])
                                 .with_message(format!(
                                     "expected a closing '{}'",
-                                    close.as_name().unwrap()
+                                    close.as_string().unwrap()
                                 ));
-            
+
                             self.context.diagnostics.push(diagnostic);
                         }
 
@@ -514,7 +516,7 @@ impl<'a> Parser<'a> {
                 // throw an error here.
                 let label = Label::primary((), self.lexer.span()).with_message(format!(
                     "expected a closing '{}', found end of file",
-                    close.as_name().unwrap()
+                    close.as_string().unwrap()
                 ));
 
                 let diagnostic = Diagnostic::error()
@@ -522,7 +524,79 @@ impl<'a> Parser<'a> {
                     .with_labels(vec![label])
                     .with_message(format!(
                         "expected a closing '{}'",
-                        close.as_name().unwrap()
+                        close.as_string().unwrap()
+                    ));
+
+                self.context.diagnostics.push(diagnostic);
+                self.successful = false;
+
+                return None;
+            }
+        }
+
+        Some(items)
+    }
+
+    /// Parses a list of types until the specified closing token is found.
+    fn parse_type_list(&mut self, close: Token) -> Option<Vec<AstMeta>> {
+        // This is the "state" of the parser.  Basically, what the parser is currently expecting.  The
+        // parser may expect a value (0) or a delimiter ',' (1).
+        //  ↓↓↓↓↓↓↓↓↓
+        let mut state = 0;
+
+        // This list of items to return.
+        let mut items = vec![];
+
+        loop {
+            if let Some(tok) = self.peek_token() {
+                if tok == close {
+                    // End the loop, we've found the closing token.
+                    self.lexer.next();
+                    break;
+                }
+
+                if state == 1 {
+                    self.eat(Token::Comma, false);
+                    state = 0;
+                } else if state == 0 {
+                    if let Some(val) = self.parse_type_binary(0) {
+                        items.push(val);
+                        state = 1;
+                    } else {
+                        if self.successful {
+                            let label = Label::primary((), self.lexer.span()).with_message(format!(
+                                "expected a closing '{}', found end of file",
+                                close.as_string().unwrap()
+                            ));
+
+                            let diagnostic = Diagnostic::error()
+                                .with_code("E0014")
+                                .with_labels(vec![label])
+                                .with_message(format!(
+                                    "expected a closing '{}'",
+                                    close.as_string().unwrap()
+                                ));
+
+                            self.context.diagnostics.push(diagnostic);
+                        }
+
+                        return None;
+                    }
+                }
+            } else {
+                // The list must not have ended yet (since we are still in the loop), so we have to
+                // throw an error here.
+                let label = Label::primary((), self.lexer.span()).with_message(format!(
+                    "expected a closing '{}', found end of file",
+                    close.as_string().unwrap()
+                ));
+
+                let diagnostic = Diagnostic::error()
+                    .with_code("E0014")
+                    .with_labels(vec![label])
+                    .with_message(format!(
+                        "expected a closing '{}'",
+                        close.as_string().unwrap()
                     ));
 
                 self.context.diagnostics.push(diagnostic);
@@ -673,7 +747,6 @@ impl<'a> Parser<'a> {
 
                                     self.lexer.next();
 
-                                    println!("TESTasdfasdfa");
                                     if let Some(e) = self.parse_expression() {
                                         if self.eat(Token::LCurly, false) {
                                             if let Some(block) = self.parse_block() {
@@ -815,6 +888,16 @@ impl<'a> Parser<'a> {
                         start..self.lexer.span().end,
                         Ast::ArrayLiteral(t),
                     ));
+                }
+
+                return None;
+            } else if tok == Token::LCurly {
+                // It's an inline code block:
+                self.lexer.next();
+                let start = self.lexer.span().start;
+
+                if let Some(b) = self.parse_block() {
+                    return Some(AstMeta::new(start..self.lexer.span().end, Ast::Block(b)));
                 }
 
                 return None;
@@ -1020,14 +1103,12 @@ impl<'a> Parser<'a> {
                             if let Some(r) = self.parse_list(Token::RParen) {
                                 left = AstMeta::new(
                                     left.range.start..self.lexer.span().end,
-                                    Ast::CallExpr(
-                                        left.into_box(),
-                                        r
-                                    )
+                                    Ast::CallExpr(left.into_box(), r),
                                 );
                             } else {
-                                // I'm pretty sure that the list parser should throw an error in the case
-                                // of something going wrong, so we shouldn't have to do that here.
+                                // I'm pretty sure that the list parser should throw an error in the
+                                // case of something going wrong, so we
+                                // shouldn't have to do that here.
                                 return None;
                             }
                         }
@@ -1092,10 +1173,315 @@ impl<'a> Parser<'a> {
         Some(left)
     }
 
+    /// Parses a binary operation used for type declarations.
+    pub fn parse_type_binary(&mut self, min: usize) -> Option<AstMeta> {
+        let mut left;
+
+        if let Some(t) = self.parse_primary() {
+            left = t;
+        } else {
+            // The file must have ended, or an error occurred.
+            return None;
+        }
+
+        loop {
+            if let Some(next_op) = self.peek_token() {
+                if let Some(op) = Opcode::from_token(next_op.clone()) {
+                    // There is an operator in the token stream, now let's see what kind of operator it
+                    // is.
+
+                    if let Some(prec) = op.type_postfix_precedence() {
+                        // If the precedence of this postfix operator is less than the minimum
+                        // precedence, we should break the loop.
+                        // ↓↓↓↓↓↓↓↓↓↓
+                        if prec < min {
+                            break;
+                        }
+
+                        // Iterate over the operator, so we can get a possible value of the operator,
+                        // if the operator is a subscript or call operator.
+                        self.lexer.next();
+
+                        if op == Opcode::Subscript {
+                            // We need to get the value of the subscript (if any), like so:
+                            if let Some(t) = self.peek_token() {
+                                if t == Token::RBrack {
+                                    self.lexer.next();
+
+                                    // There is no value in the subscript.
+                                    left = AstMeta::new(
+                                        left.range.start..self.lexer.span().end,
+                                        Ast::SubscriptExpr(left.into_box(), None),
+                                    );
+                                } else {
+                                    // The subscript has a right operand, so we can use a recursive call
+                                    // to recieve the operand.
+                                    if let Some(right) = self.parse_type_binary(0) {
+                                        // eat the closing bracket
+                                        self.eat(Token::RBrack, false);
+
+                                        left = AstMeta::new(
+                                            left.range.start..self.lexer.span().end,
+                                            Ast::SubscriptExpr(left.into_box(), Some(right.into_box())),
+                                        );
+                                    } else {
+                                        if self.successful {
+                                            let label = Label::primary((), self.lexer.span())
+                                                .with_message("expected a ']' here");
+
+                                            let diagnostic = Diagnostic::error()
+                                                .with_code("E0009")
+                                                .with_labels(vec![label])
+                                                .with_message("expected expression after operator");
+
+                                            self.context.diagnostics.push(diagnostic);
+                                            self.successful = false;
+                                            return None;
+                                        }
+                                        return None;
+                                    }
+                                }
+                            } else {
+                                // It is guaranteed that there is no closing `]` here, so we must throw
+                                // an error stating this.
+                                // No error was thrown, we should throw an error here.
+                                let label = Label::primary((), self.lexer.span())
+                                    .with_message("expected a ']' here");
+
+                                let diagnostic = Diagnostic::error()
+                                    .with_code("E0009")
+                                    .with_labels(vec![label])
+                                    .with_message("expected expression after operator");
+
+                                self.context.diagnostics.push(diagnostic);
+                                self.successful = false;
+                                return None;
+                            }
+                        } else if op == Opcode::Less {
+                            // It's a template operator.
+                            if let Some(r) = self.parse_type_list(Token::Greater) {
+                                left = AstMeta::new(
+                                    left.range.start..self.lexer.span().end,
+                                    Ast::TemplateExpr(left.into_box(), r),
+                                );
+                            } else {
+                                // I'm pretty sure that the list parser should throw an error in the
+                                // case of something going wrong, so we
+                                // shouldn't have to do that here.
+                                return None;
+                            }
+                        }
+                    } else if let Some((lp, rp)) = op.type_infix_precedence() {
+                        // The token is an infix operator, which means an operator that takes both left
+                        // and right operands.  These are known as "binary expressions," since they
+                        // take two operands.
+                        // An example of this includes `21 + 21`, which equates to the tree:
+                        //
+                        //     (+
+                        //         21,
+                        //         21
+                        //     )
+                        //
+
+                        if lp < min {
+                            break;
+                        }
+
+                        self.lexer.next();
+
+                        if let Some(rhs) = self.parse_type_binary(rp) {
+                            left = AstMeta::new(
+                                left.range.start..self.lexer.span().end,
+                                Ast::BinaryExpr(op, left.into_box(), rhs.into_box()),
+                            );
+                        } else {
+                            // We expected a right hand side operand after the operator, but there was
+                            // nothing.
+                            if self.successful {
+                                // No error was thrown, we should throw an error here.
+                                let label =
+                                    Label::primary((), self.lexer.span()).with_message(format!(
+                                        "expected expression [here] after '{}' operator",
+                                        next_op.as_string().unwrap()
+                                    ));
+
+                                let diagnostic = Diagnostic::error()
+                                    .with_code("E0008")
+                                    .with_labels(vec![label])
+                                    .with_message("expected expression after operator");
+
+                                self.context.diagnostics.push(diagnostic);
+                                self.successful = false;
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                } else {
+                    // We assume the expression ended because there was not an operator.
+                    break;
+                }
+            } else {
+                // No tokens left, break the loop.
+                break;
+            }
+        }
+
+        // Now that we've finished the main loop, we can return the left hand statement, which may or
+        // may not have been modified by an expression.
+        Some(left)
+    }
+
     /// Parses a single expression at the current index of the lexer.
     pub fn parse_expression(&mut self) -> Option<AstMeta> {
-        // self.parse_binary(0)
-        if let Some(tok) = self.peek_token() {}
+        if self.eat_optional(Token::ConstructIdentifier, true) {
+            // There is a construct declaration!  Now this is the fun part, we need to determine what
+            // kind of construct declaration it is, it may be a class construct, function construct
+            // or variable construct.
+
+            // The character that the construct declaration starts at.
+            let start = self.lexer.span().start;
+
+            // This is the construct being used.  For example, `@func` is a construct; and for
+            // `@func`, this variable would be equal to "func".
+            let const_name = &self.lexer.slice()[1..];
+
+            let name;
+            if let Some(n) = self.parse_type_binary(0) {
+                name = n;
+            } else {
+                if self.successful {
+                    let label = Label::primary((), self.lexer.span())
+                        .with_message("expected name for construct declaration here.");
+
+                    let diagnostic = Diagnostic::error()
+                        .with_code("E0015")
+                        .with_labels(vec![label])
+                        .with_message("expected name for construct declaration.");
+
+                    self.context.diagnostics.push(diagnostic);
+                    self.successful = false;
+                }
+
+                return None;
+            }
+
+            if let Some(tok) = self.peek_token() {
+                if tok == Token::LParen {
+                    // Function call construct.
+                    self.lexer.next();
+
+                    let arguments = if let Some(args) = self.parse_type_list(Token::RParen) {
+                        args
+                    } else {
+                        return None;
+                    };
+
+                    let returns;
+
+                    if self.eat_optional(Token::Colon, false) {
+                        // There's a type declaration before the function's code block.
+                        if let Some(ty) = self.parse_type_binary(0) {
+                            // We have the type of the function!
+                            returns = Some(ty.into_box());
+                        } else {
+                            if self.successful {
+                                let label = Label::primary((), self.lexer.span())
+                                    .with_message("expected type annotation here.");
+
+                                let diagnostic = Diagnostic::error()
+                                    .with_code("E0016")
+                                    .with_labels(vec![label])
+                                    .with_message("no type annotation after ':'.");
+
+                                self.context.diagnostics.push(diagnostic);
+                                self.successful = false;
+                            }
+
+                            return None;
+                        }
+                    } else {
+                        returns = None;
+                    }
+
+                    if self.eat(Token::LCurly, false) {
+                        if let Some(block) = self.parse_block() {
+                            let comments = self.comments.clone();
+                            self.comments.clear();
+
+                            return Some(
+                                AstMeta::new(
+                                    start..self.lexer.span().end,
+                                    Ast::FunctionConstruct {
+                                        construct: const_name.into(),
+                                        name: name.into_box(),
+                                        returns,
+                                        arguments,
+                                        block,
+                                    },
+                                )
+                                .with_comments(comments),
+                            );
+                        }
+                    } else {
+                        return None;
+                    }
+                } else if tok == Token::LCurly {
+                    // Class construct.
+
+                    // Skip over the opening curly bracket.
+                    self.lexer.next();
+
+                    if let Some(block) = self.parse_block() {
+                        return Some(AstMeta::new(
+                            start..self.lexer.span().end,
+                            Ast::ClassConstruct {
+                                block,
+                                construct: const_name.into(),
+                                name: name.into_box(),
+                            },
+                        ));
+                    } else {
+                        return None;
+                    }
+                } else if tok == Token::Equals {
+                    // Variable construct.
+
+                    self.lexer.next();
+
+                    if let Some(value) = self.parse_expression() {
+                        return Some(AstMeta::new(
+                            start..self.lexer.span().end,
+                            Ast::VariableConstruct {
+                                construct: const_name.to_string(),
+                                name: name.into_box(),
+                                value: value.into_box(),
+                            },
+                        ));
+                    } else {
+                        return None;
+                    }
+                }
+            }
+        } else if self.eat_optional(Token::PubKeyword, true) {
+            let start = self.lexer.span().end;
+
+            if let Some(t) = self.parse_expression() {
+                return Some(AstMeta::new(
+                    start..self.lexer.span().end,
+                    Ast::PubStmnt(t.into_box()),
+                ));
+            }
+        } else if self.eat_optional(Token::PrivKeyword, true) {
+            let start = self.lexer.span().end;
+
+            if let Some(t) = self.parse_expression() {
+                return Some(AstMeta::new(
+                    start..self.lexer.span().end,
+                    Ast::PrivStmnt(t.into_box()),
+                ));
+            }
+        }
 
         self.parse_binary(0)
     }
@@ -1169,14 +1555,14 @@ impl<'a> Parser<'a> {
         let mut ast = vec![];
 
         loop {
-            if let Some(tok) = self.peek_token() {
-                if tok == Token::RCurly {
+            if let Some(tok) = self.lexer.clone().next() {
+                if tok == Token::Semicolon {
                     self.lexer.next();
-                    break;
+                    continue;
                 }
 
                 if let Some(mut expr) = self.parse_expression() {
-                    if let Some(tok2) = self.peek_token() {
+                    if let Some(tok2) = self.lexer.clone().next() {
                         if tok2 == Token::Semicolon {
                             self.lexer.next();
                             expr.semicolon();
@@ -1185,39 +1571,10 @@ impl<'a> Parser<'a> {
 
                     ast.push(expr);
                 } else {
-                    if self.successful {
-                        // End of file found before the closing curly bracket.
-                        self.lexer.next();
-
-                        let label = Label::primary((), self.lexer.span())
-                            .with_message("expected a closing '}' here.");
-
-                        let diagnostic = Diagnostic::error()
-                            .with_code("E0011")
-                            .with_labels(vec![label])
-                            .with_message("unclosed block statement.");
-
-                        self.context.diagnostics.push(diagnostic);
-                        self.successful = false;
-                    }
-
-                    return None;
+                    break;
                 }
             } else {
-                // The file ended; meaning no closing bracket was found.
-                self.lexer.next();
-
-                let label =
-                    Label::primary((), self.lexer.span()).with_message("expected a closing '}' here.");
-
-                let diagnostic = Diagnostic::error()
-                    .with_code("E0011")
-                    .with_labels(vec![label])
-                    .with_message("unclosed block statement.");
-
-                self.context.diagnostics.push(diagnostic);
-                self.successful = false;
-                return None;
+                break;
             }
         }
 
