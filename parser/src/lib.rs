@@ -1481,6 +1481,57 @@ impl<'a> Parser<'a> {
                     Ast::PrivStmnt(t.into_box()),
                 ));
             }
+        } else if self.eat_optional(Token::PrivKeyword, true) {
+            let start = self.lexer.span().end;
+
+            if let Some(t) = self.parse_expression() {
+                return Some(AstMeta::new(
+                    start..self.lexer.span().end,
+                    Ast::PrivStmnt(t.into_box()),
+                ));
+            }
+        } else if self.eat_optional(Token::ReturnKeyword, true) {
+            let start = self.lexer.span().end;
+
+            // Determine whether or not the return statement has a return value.
+            if let Some(t) = self.peek_token() {
+                if t == Token::Plus ||
+                    t == Token::Minus ||
+                    t == Token::Not ||
+                    t == Token::Identifier ||
+                    t == Token::Number ||
+                    t == Token::TrueKeyword ||
+                    t == Token::FalseKeyword ||
+                    t == Token::LCurly ||
+                    t == Token::Exclamation ||
+                    t == Token::LParen ||
+                    t == Token::String ||
+                    t == Token::IfKeyword ||
+                    t == Token::WhileKeyword {
+                    if let Some(v) = self.parse_expression() {
+                        return Some(AstMeta::new(
+                            start..self.lexer.span().end,
+                            Ast::ReturnStmnt(
+                                Some(v.into_box())
+                            )
+                        ))
+                    } else {
+                        // We can assume an error occurred since we know that there is a token left in
+                        // the lexer.
+                        return None;
+                    }
+                } else {
+                    return Some(AstMeta::new(
+                        start..self.lexer.span().end,
+                        Ast::ReturnStmnt(None)
+                    ));
+                }
+            } else {
+                return Some(AstMeta::new(
+                    start..self.lexer.span().end,
+                    Ast::ReturnStmnt(None)
+                ));
+            }
         }
 
         self.parse_binary(0)
