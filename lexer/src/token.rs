@@ -140,6 +140,18 @@ pub enum Token {
     #[token("declare")]
     DeclareKeyword,
 
+    /// `return`s a value from a function.
+    #[token("return")]
+    ReturnKeyword,
+
+    /// Ends a loop.
+    #[token("break")]
+    BreakKeyword,
+
+    /// Skips to the next iteration of a loop.
+    #[token("continue")]
+    ContinueKeyword,
+
     /// The `pub` keyword makes a field of a module or construct accessible to the public.  This is
     /// ignored for imports using the `#include` preprocessor.
     #[token("pub")]
