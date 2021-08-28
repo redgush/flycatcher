@@ -5,6 +5,12 @@ use std::ops::Range;
 /// the document comments before it, whether there's a semicolon after it, and so on.
 #[derive(Clone)]
 pub struct AstMeta {
+    /// The name of the file that this AST item was found in.
+    pub filename: String,
+
+    /// The file that this AST item was found in.
+    pub source: String,
+
     /// The absolute indexes where the AST item starts and ends in the source file.
     pub range: Range<usize>,
 
@@ -23,8 +29,10 @@ pub struct AstMeta {
 
 impl AstMeta {
     /// Creates an AST metadata struct.  `semicolon` defaults to `false`, which may be changed later.
-    pub fn new(range: Range<usize>, item: Ast) -> Self {
+    pub fn new(filename: &str, source: &str, range: Range<usize>, item: Ast) -> Self {
         Self {
+            filename: filename.to_owned(),
+            source: source.to_owned(),
             range,
             semicolon: false,
             comments: vec![],
@@ -34,8 +42,10 @@ impl AstMeta {
     }
 
     /// Creates an AST metadata object and immediately boxes it.
-    pub fn boxed(range: Range<usize>, item: Ast) -> Box<Self> {
+    pub fn boxed(filename: &str, source: &str, range: Range<usize>, item: Ast) -> Box<Self> {
         Box::new(Self {
+            filename: filename.to_owned(),
+            source: source.to_owned(),
             range,
             semicolon: false,
             comments: vec![],
