@@ -68,7 +68,6 @@ impl Opcode {
     pub fn infix_precedence(&self) -> Option<(usize, usize)> {
         Some(match self {
             Self::Period => (100, 99),
-            Self::Not => (93, 94),
             Self::Asterisk => (91, 92),
             Self::Slash => (91, 92),
             Self::Percent => (91, 92),
@@ -108,6 +107,7 @@ impl Opcode {
             Self::Exclamation => 98,
             Self::Plus => 97,
             Self::Minus => 97,
+            Self::Not => 97,
             _ => return None,
         })
     }
