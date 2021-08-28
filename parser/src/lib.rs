@@ -1575,6 +1575,34 @@ impl<'a> Parser<'a> {
                     Ast::ContinueStmnt(None),
                 ));
             }
+        } else if self.eat_optional(Token::PreprocessorIdentifier, true) {
+            let start = self.lexer.span().end;
+            let name = &self.lexer.slice()[1..];
+
+            // Determine whether or not the continue statement has a label.
+            if self.is_value() {
+                if let Some(v) = self.parse_expression() {
+                    return Some(AstMeta::new(
+                        start..self.lexer.span().end,
+                        Ast::PreprocessorStmnt {
+                            name: name.to_string(),
+                            argument: Some(v.into_box())
+                        }
+                    ));
+                } else {
+                    // We can assume an error occurred since we know that there is a token left in
+                    // the lexer.
+                    return None;
+                }
+            } else {
+                return Some(AstMeta::new(
+                    start..self.lexer.span().end,
+                    Ast::PreprocessorStmnt {
+                        name: name.to_string(),
+                        argument: None
+                    }
+                ));
+            }
         } else if self.eat_optional(Token::BreakKeyword, true) {
             let start = self.lexer.span().end;
 

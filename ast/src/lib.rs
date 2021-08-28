@@ -143,6 +143,15 @@ pub enum Ast {
         returns: Option<Box<AstMeta>>,
     },
 
+    /// A preprocessor for the compiler, which uses the `#preprocessor_name` syntax.
+    PreprocessorStmnt {
+        /// The name of the preprocessor being used.
+        name: String,
+
+        /// The argument provided for the preprocessor to use, if any.
+        argument: Option<Box<AstMeta>>,
+    },
+
     /// A statement with `pub` access.
     PubStmnt(Box<AstMeta>),
 
