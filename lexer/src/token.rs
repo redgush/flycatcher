@@ -24,21 +24,13 @@ pub enum Token {
     #[token("]")]
     RBrack,
 
-    /// A left parenthesis.  `[`.
+    /// A left parenthesis.  `(`.
     #[token("(")]
     LParen,
 
-    /// A left parenthesis.  `]`.
+    /// A left parenthesis.  `)`.
     #[token(")")]
     RParen,
-
-    /// The `>>` bitwise right bit shift operator.
-    #[token(">>")]
-    GreaterGreater,
-
-    /// The `<<` bitwise left bit shift operator.
-    #[token("<<")]
-    LessLess,
 
     /// The `==` comparison operator.
     #[token("==")]
