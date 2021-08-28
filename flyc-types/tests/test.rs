@@ -8,7 +8,7 @@ mod test {
 
     #[test]
     pub fn test() {
-        let mut test_const = Construct {
+        let test_const = Construct {
             name: "test".into(),
             full_name: Named("test".into(), vec![]),
             properties: vec![
