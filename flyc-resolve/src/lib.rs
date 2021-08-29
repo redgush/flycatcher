@@ -7,7 +7,11 @@ use std::env::{current_dir, current_exe};
 use std::path::{Path, PathBuf};
 
 /// Returns the provided string relative to the current working directory.
-pub fn get_debug_name(abs: String) -> PathBuf {
+pub fn get_debug_name(mut abs: String) -> PathBuf {
+    if abs.starts_with("\\\\?\\") {
+        abs = abs[4..].into();
+    }
+
     diff_paths(abs, current_dir().unwrap()).unwrap()
 }
 
@@ -20,7 +24,7 @@ pub fn resolve_path(name: String, src: String) -> Option<PathBuf> {
         tmp_name.push_str(".flyc");
     }
 
-    let p = Path::new(&tmp_name).join(Path::new(&src));
+    let p = Path::new(&src).join(Path::new(&tmp_name));
     if p.exists() {
         return Some(p);
     } else {

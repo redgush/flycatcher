@@ -21,7 +21,8 @@ fn main() {
         let path = Path::new(i);
         if path.exists() {
             let s = fs::read_to_string(i).unwrap();
-            let ctx = Context::new(i, &s);
+            let p = std::fs::canonicalize(Path::new(i)).unwrap();
+            let ctx = Context::new(p.to_str().unwrap(), &s);
 
             {
                 let mut tmp_ctx = ctx.clone();
@@ -31,10 +32,17 @@ fn main() {
                 let ast = parser.parse();
                 let end = start.elapsed().as_nanos();
 
-                dbg!(ast);
+                dbg!(ast.clone());
                 parser.context.emit();
 
-                println!("Parsed in {}ms", end as f64 / 1e+6)
+                if let Some(mut ast) = ast {
+                    let mut tmp_ctx2 = ctx.clone();
+                    let mut lowerer = flyc_ast_lower::AstLowerer::new(&mut tmp_ctx2);
+                    lowerer.resolve_imports(&mut ast);
+                    lowerer.context.emit();
+                }
+
+                println!("Parsed in {}ms", end as f64 / 1e+6);
             }
         } else {
             println!("Error: provided input file doesn't exist.");

@@ -8,6 +8,7 @@ use codespan_reporting::term::{
     Config,
     Styles,
 };
+use flyc_resolve::get_debug_name;
 
 /// A context used for keeping track of diagnostics with Flycatcher.  This struct also provides
 /// functionality for emitting such diagnostics to the terminal, as well as configuring how they look
@@ -133,7 +134,8 @@ impl<'a> Context<'a> {
     pub fn emit_diagnostic(&self, diagnostic: Diagnostic<()>) {
         // This file is used by `codespan-reporting` to get the name of the file that the diagnostic is
         // for and to find snippets in the file.
-        let file = SimpleFile::new(self.filename.to_string(), self.source);
+        let buf = get_debug_name(self.filename.to_string());
+        let file = SimpleFile::new(buf.to_str().unwrap(), self.source);
 
         // We should emit diagnostics to the correct streams.  For example, error diagnostics should be
         // emitted to `stderr`, while note diagnostics should be emitted to `stdout`.
