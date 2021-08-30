@@ -11,6 +11,9 @@ pub enum Opcode {
 
     /// `Call` operators are `()` argument lists after a name, such as `my_function()`.
     Call,
+
+    /// Initializes a struct/construct, using the `{}` operator as a prefix.
+    StructInitializer,
     Colon,
     GreaterGreater,
     LessLess,
@@ -43,6 +46,7 @@ impl Opcode {
             Token::Period => Some(Opcode::Period),
             Token::LBrack => Some(Opcode::Subscript),
             Token::LParen => Some(Opcode::Call),
+            Token::LCurly => Some(Opcode::StructInitializer),
             Token::EqualsEquals => Some(Opcode::EqualsEquals),
             Token::Exclamation => Some(Opcode::Exclamation),
             Token::ExclamationEquals => Some(Opcode::ExclamationEquals),
@@ -97,6 +101,7 @@ impl Opcode {
         Some(match self {
             Self::Subscript => 100,
             Self::Call => 98,
+            Self::StructInitializer => 98,
             _ => return None,
         })
     }
