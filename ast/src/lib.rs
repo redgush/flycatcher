@@ -47,6 +47,16 @@ pub enum Ast {
     /// ```
     CallExpr(Box<AstMeta>, Vec<AstMeta>),
 
+    /// A struct init operator, for example:
+    ///
+    /// ```flycatcher
+    /// MyStruct {
+    ///     property1: "value",
+    ///     property2: 123456789
+    /// }
+    /// ```
+    StructInitExpr(Box<AstMeta>, Vec<AstMeta>),
+
     /// A template expression:
     ///
     /// ```flycatcher

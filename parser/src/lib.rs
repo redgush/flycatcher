@@ -1151,8 +1151,22 @@ impl<'a> Parser<'a> {
                                 );
                             } else {
                                 // I'm pretty sure that the list parser should throw an error in the
-                                // case of something going wrong, so we
-                                // shouldn't have to do that here.
+                                // case of something going wrong, so we shouldn't have to do that here.
+                                return None;
+                            }
+                        } else if op == Opcode::StructInitializer {
+                            // Parses a struct initializer, which is a list of properties.  These
+                            // propeties are expected to use the `:` operator for names, or just the
+                            // name of the property if there is a variable in scope that can be used
+                            // as a property in this struct.
+                            if let Some(r) = self.parse_list(Token::RCurly) {
+                                left = AstMeta::new(
+                                    self.context.filename,
+                                    self.context.source,
+                                    left.range.start..self.lexer.span().end,
+                                    Ast::StructInitExpr(left.into_box(), r),
+                                );
+                            } else {
                                 return None;
                             }
                         }
