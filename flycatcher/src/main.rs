@@ -35,12 +35,13 @@ fn main() {
                 dbg!(ast.clone());
                 parser.context.emit();
 
+                /*
                 if let Some(mut ast) = ast {
                     let mut tmp_ctx2 = ctx.clone();
                     let mut lowerer = flyc_ast_lower::AstLowerer::new(&mut tmp_ctx2);
                     lowerer.resolve_imports(&mut ast);
                     lowerer.context.emit();
-                }
+                }*/
 
                 println!("Parsed in {}ms", end as f64 / 1e+6);
             }
