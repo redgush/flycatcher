@@ -109,6 +109,22 @@ pub enum Ast {
         block: Vec<AstMeta>,
     },
 
+    /// A function construct declaration without a code block.
+    FunctionDecConstruct {
+        /// The construct's name, minus the `@` prefix.
+        construct: String,
+
+        /// The name of the function being declared.
+        name: Box<AstMeta>,
+
+        /// The type annotation of which the function should return.
+        returns: Option<Box<AstMeta>>,
+
+        /// A list of arguments declared in the function construct.  These are expected to be type
+        /// declarations using the colon (`:`) operator.
+        arguments: Vec<AstMeta>,
+    },
+
     /// A class construct declaration.
     ///
     /// ```flycatcher
