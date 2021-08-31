@@ -28,6 +28,9 @@ pub struct HirConstruct {
     /// A list of properties in the construct.
     pub properties: Vec<HirConstructProperty>,
 
+    /// A list of `@impl` implementations.
+    pub implementations: Vec<HirConstruct>,
+
     /// A list of templates declared for the construct in the top level, for example:
     /// 
     /// ```flycatcher
