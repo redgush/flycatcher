@@ -1,14 +1,19 @@
-//! This crate provides tools for HIR generation from AST trees.
-//!
-//! Though, this crate is not the crate that lowers an AST tree into Flycatcher HIR, it just provides
-//! tools for doing so.
+//! Crate for generating Flycatcher HIR.
 
-pub mod construct;
-pub mod func;
-pub mod meta;
-pub mod module;
-pub mod symbol;
+mod access;
+mod construct;
+mod func;
+mod meta;
+mod module;
 
-/// The main Flycatcher HIR items that are used by the compiler.
+pub use access::Access;
+pub use construct::HirConstruct;
+pub use func::{HirFunction, HirFunctionArgument};
+pub use meta::HirMeta;
+pub use module::HirModule;
+
+/// The Flycatcher HIR instructions that are possible.
 #[derive(Clone, Debug, PartialEq)]
-pub enum Hir {}
+pub enum Hir {
+
+}

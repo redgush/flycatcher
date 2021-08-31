@@ -1,12 +1,20 @@
-use crate::symbol::SymbolType;
+use crate::{HirConstruct, HirFunction};
 
-/// A Flycatcher module stores information about a Flycatcher source, including its imports, symbols,
-/// etc.
-#[derive(Clone, Debug, PartialEq)]
-pub struct FlycatcherModule {
-    /// A list of symbols declared in the module.
-    pub symbols: Vec<SymbolType>,
+/// Different symbol types used by Flycatcher HIR.
+pub enum HirSymbol {
+    /// A function that was declared using the `declare` keyword.
+    ExternalFunction(HirFunction),
 
-    /// A list of `#import`s used by the module.
-    pub imports: Vec<String>,
+    /// A function declared inside of the module.
+    Function(HirFunction),
+
+    /// A construct declared inside of the module.
+    Construct(HirConstruct),
+}
+
+pub struct HirModule {
+
+    /// A list of symbols declared in this module.
+    pub symbols: Vec<HirSymbol>,
+
 }

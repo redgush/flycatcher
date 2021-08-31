@@ -1,35 +1,39 @@
-use crate::func::HirFunction;
-use crate::Hir;
-use flyc_types::Named;
+use crate::{Access, HirMeta, HirFunction};
 
-/// A property for a construct.
-#[derive(Clone, Debug, PartialEq)]
 pub struct HirConstructProperty {
     /// The name of the property.
     pub name: String,
 
-    /// The type declaration for the item.
-    pub ty: Option<Hir>,
+    /// The type annotation provided for the property.
+    pub annotation: HirMeta,
 
-    /// The default value for the item.
-    pub value: Option<Hir>,
+    /// The accessability allowed by the property.
+    pub access: Access
 }
 
-/// A Flycatcher construct declaration.
-#[derive(Clone, Debug, PartialEq)]
+/// A Flycatcher style construct.
 pub struct HirConstruct {
-    /// The name of the construct used to declare this construct.
+    /// The name of the construct used to define this construct.
     pub construct: String,
 
-    /// A list of methods in the construct.
-    pub methods: Vec<HirFunction>,
-
-    /// A list of properties defined in the construct.
-    pub properties: Vec<HirConstructProperty>,
-
-    /// The name of this construct.
+    /// The name of the construct.
     pub name: String,
 
-    /// The absolute path to the construct.
-    pub full_name: Named,
+    /// The publicity of the construct.
+    pub access: Access,
+
+    /// A list of methods declared in the construct.
+    pub methods: Vec<HirFunction>,
+
+    /// A list of properties in the construct.
+    pub properties: Vec<HirConstructProperty>,
+
+    /// A list of templates declared for the construct in the top level, for example:
+    /// 
+    /// ```flycatcher
+    /// @construct template<T> {
+    ///     // ...
+    /// }
+    /// ```
+    pub templates: Vec<HirMeta>,
 }

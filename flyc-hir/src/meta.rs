@@ -4,7 +4,7 @@ use crate::Hir;
 use std::ops::Range;
 
 /// Provides "metadata" about an HIR item.  This includes where the HIR item was found in a source file.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct HirMeta {
     /// The absolute indexes where the HIR item starts and ends in the source file.
     pub range: Range<usize>,
