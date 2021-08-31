@@ -1494,7 +1494,7 @@ impl<'a> Parser<'a> {
                         returns = None;
                     }
 
-                    if self.eat(Token::LCurly, false) {
+                    if self.eat_optional(Token::LCurly, false) {
                         if let Some(block) = self.parse_block() {
                             let comments = self.comments.clone();
                             self.comments.clear();
@@ -1516,7 +1516,22 @@ impl<'a> Parser<'a> {
                             );
                         }
                     } else {
-                        return None;
+                        let comments = self.comments.clone();
+                        self.comments.clear();
+                        return Some(
+                            AstMeta::new(
+                                self.context.filename,
+                                self.context.source,
+                                start..self.lexer.span().end,
+                                Ast::FunctionDecConstruct {
+                                    construct: const_name.into(),
+                                    name: name.into_box(),
+                                    returns,
+                                    arguments,
+                                },
+                            )
+                            .with_comments(comments),
+                        );
                     }
                 } else if tok == Token::LCurly {
                     // Class construct.
