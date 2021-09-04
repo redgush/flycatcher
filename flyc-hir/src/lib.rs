@@ -10,7 +10,7 @@ pub use access::Access;
 pub use construct::HirConstruct;
 pub use func::{HirFunction, HirFunctionArgument};
 pub use meta::HirMeta;
-pub use module::HirModule;
+pub use module::{HirModule, HirSymbol};
 
 /// The Flycatcher HIR instructions that are possible.
 #[derive(Clone, Debug, PartialEq)]
