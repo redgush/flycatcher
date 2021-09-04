@@ -1,5 +1,6 @@
 use crate::{Access, HirMeta, HirFunction};
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct HirConstructProperty {
     /// The name of the property.
     pub name: String,
@@ -12,6 +13,7 @@ pub struct HirConstructProperty {
 }
 
 /// A Flycatcher style construct.
+#[derive(Clone, Debug, PartialEq)]
 pub struct HirConstruct {
     /// The name of the construct used to define this construct.
     pub construct: String,
