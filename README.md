@@ -1,20 +1,65 @@
 # Flycatcher
-Flycatcher is a high-level compiled programming language.  Flycatcher's main point is "constructs," which allow you to essentially change the programming language without any external modifications to the compiler.
+Flycatcher is a general purpose, high-level, multi-paradigm, statically typed, compiled programming language.  The goals of Flycatcher are similar to that of Rust; create a safe, fast programming language that can offer the efficiency and ability of systems programming to programmers new and old.
 
-We use the Cranelift code generator behind the scenes, which is a rather new code generator project made by the Bytecode Alliance, it compiles executables faster than LLVM, and it sometimes compiles more efficiently than LLVM as well.
+> Flycatcher is not in a released alpha state yet, meaning it is not yet functional.  While some features may be finished, others may not be, such as the compiler's code generator.
 
-> **note!** Flycatcher is being re-written with the intent to finish most of the initial goals set for it.  This will improve efficiency, functionality, syntax, etc.  The code will be written better and will be well documented, if you want to look through it.
+# Goals
+- Efficiently prevent the need to manually manage memory.  In the C language, explicit calls to `malloc`, `realloc` and `free` are very common, often necessary for even small programs.  The management of memory should happen at compile time, for maximum performance.
+- It should be easy to learn, for programmers new and old.
 
-## Hello, world!
+## Examples
+### Hello, world!
 ```flycatcher
-#include "std/io"
-
 @func main() {
-    println("Hello, world!");
+    println("Hello, world!"); // => Hello, world!
 }
 ```
 
-# Goals with Flycatcher
-- One of Flycatcher's main goals is to provide as many high-level abstractions as possible without draining the performance and efficiency of the application.
-- The other main goal is to produce small executables.  Flycatcher doesn't rely on the C standard library, unlike programming languages such as Rust (and C of course).  Also, because of the way Flycatcher works, it only links libraries that are used.  Normally, languages like Rust link with their **entire** standard library, making for an unnecessarily large executable since there is unused code all over the place.  Instead of this, we link several small system-specific wrappers where needed, allowing for much smaller executables.
-- Simplicity and consistency are important for Flycatcher, as it's meant to be a high level programming language.  It isn't as advanced as languages such as Rust, nor will it ever be, but it will (hopefully) be just as powerful as any other systems programming languages.
+### Duck Typing
+Flycatcher is a statically "duck typed" programming language, which means "if it looks like a duck and quacks like a duck, it must be a duck."  It stems off of this concept quite a bit, for example:
+
+```flycatcher
+@type my_type = {
+    value: uint64 // Unsigned 64-bit integer
+}
+
+@func example_function(obj: my_type) {
+    println(obj.value);
+}
+
+@func main() {
+    example_function({
+        value: 42
+    }); // => 42
+}
+```
+
+### Statically Dispatched Dynamic Typing
+> **This is not a confirmed feature of Flycatcher.**
+
+This feature allows the compile time compilation of dynamic types, allows efficient dynamic typing, at the cost of executable size.
+
+```flycatcher
+// The `obj` parameter has no type annotation.
+@func example_function(obj) {
+    match obj {
+        str: string => {
+            // `obj` is a string.
+            println(str);
+        },
+        str: Coerce<string> => {
+            // `obj` can be implicitly converted into a string.
+            println(str);
+        },
+        _ => {
+            // No other types matched.
+            println("Unknown type.");
+        }
+    }
+}
+
+@func main() {
+    example_function("Hello, world!"); // => Hello, world!
+    example_function(42); // => 42
+}
+```
