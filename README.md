@@ -33,33 +33,3 @@ Flycatcher is a statically "duck typed" programming language, which means "if it
     }); // => 42
 }
 ```
-
-### Statically Dispatched Dynamic Typing
-> **This is not a confirmed feature of Flycatcher.**
-
-This feature allows the compile time compilation of dynamic types, allows efficient dynamic typing, at the cost of executable size.
-
-```flycatcher
-// The `obj` parameter has no type annotation.
-@func example_function(obj) {
-    match obj {
-        str: string => {
-            // `obj` is a string.
-            println(str);
-        },
-        str: Coerce<string> => {
-            // `obj` can be implicitly converted into a string.
-            println(str);
-        },
-        _ => {
-            // No other types matched.
-            println("Unknown type.");
-        }
-    }
-}
-
-@func main() {
-    example_function("Hello, world!"); // => Hello, world!
-    example_function(42); // => 42
-}
-```
